@@ -7,14 +7,16 @@ Gem::Specification.new do |s|
   s.email = 'matti.georgi@gmail.com'
   s.homepage = 'http://github.com/georgi/git_store'  
   s.description = 'a simple data store based on git'
-  s.files = %w{ .gitignore
-                LICENSE
-                README.md
-                git_store.gemspec
-                lib/git_store.rb
-                spec/git_store_spec.rb }
   s.require_path = 'lib'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.md']  
+  s.files = %w{
+.gitignore
+LICENSE
+README.md
+git_store.gemspec
+lib/git_store.rb
+spec/git_store_spec.rb
+}
 end
 
