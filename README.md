@@ -60,7 +60,7 @@ John Wiegley already has done [something similar for Python][4]. His
 implementation has its own git interface, GitStore uses the wonderful
 [Grit][2] library.
 
-[1] http://git.or.cz/
-[2] http://github.com/mojombo/grit/tree/master
-[3] http://github.com/
-[4] http://www.newartisans.com/blog_files/git.versioned.data.store.php
+[1]: http://git.or.cz/
+[2]: http://github.com/mojombo/grit/tree/master
+[3]: http://github.com/
+[4]: http://www.newartisans.com/blog_files/git.versioned.data.store.php
