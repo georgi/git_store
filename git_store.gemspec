@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.author = 'Matthias Georgi'
   s.email = 'matti.georgi@gmail.com'
   s.homepage = 'http://github.com/georgi/git_store'  
-  s.description = 'a simple data store based on git'
+  s.description = 'A simple git based data store'
   s.require_path = 'lib'
   s.has_rdoc = true
   s.extra_rdoc_files = ['README.md']  
