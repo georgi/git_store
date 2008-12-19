@@ -1,5 +1,4 @@
 require 'grit'
-require 'erb'
 
 class GitStore
 
