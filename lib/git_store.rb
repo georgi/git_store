@@ -16,7 +16,7 @@ end
 class GitStore
 
   class DefaultHandler
-    def read(id, name, data)
+    def read(name, data)
       data
     end
 
@@ -26,7 +26,7 @@ class GitStore
   end
   
   class YAMLHandler    
-    def read(id, name, data)
+    def read(name, data)
       YAML.load(data)
     end
 
@@ -36,13 +36,13 @@ class GitStore
   end
 
   class RubyHandler
-    def read(id, name, data)
+    def read(name, data)
       Object.module_eval(data)
     end
   end
 
   class ERBHandler
-    def read(id, name, data)
+    def read(name, data)
       ERB.new(data)
     end
   end
@@ -64,7 +64,6 @@ class GitStore
     def initialize(*args)
       if args.first.is_a?(Grit::Blob)
         @blob = args.first
-        @id = @blob.id
         @name = @blob.name
       else
         @name = args[0]
@@ -77,7 +76,7 @@ class GitStore
     end
 
     def load(data)
-      @data = handler.read(id, name, data)
+      @data = handler.read(name, data)
     end
 
     def handler
@@ -105,7 +104,7 @@ class GitStore
   class Tree
     include Enumerable
 
-    attr_reader :id, :data
+    attr_reader :data
     attr_accessor :name
     
     def initialize(name = nil)
@@ -114,7 +113,6 @@ class GitStore
     end
 
     def load(tree)
-      @id = tree.id
       @name = tree.name
       @data = tree.contents.inject({}) do |hash, file|
         if file.is_a?(Grit::Tree)
