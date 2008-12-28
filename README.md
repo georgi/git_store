@@ -15,8 +15,8 @@ library is based on [Grit][2], the main technology behind [GitHub][3].
 
 GitStore can be installed as gem easily, if you have RubyGems 1.2.0:
 
-    $ gem sources -a http://gems.github.com you only have to do this once)
-    $ sudo gem install georgi-git_store
+    $ gem sources -a http://gems.github.com (you only have to do this once)
+    $ sudo gem install mojombo-grit georgi-git_store
 
 If you don't have RubyGems 1.2.0, you may download the package on the
 [github page][4] and build the gem yourself:
