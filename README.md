@@ -15,23 +15,23 @@ library is based on [Grit][2], the main technology behind [GitHub][3].
 
 GitStore can be installed as gem easily, if you have RubyGems 1.2.0:
 
-   $ gem sources -a http://gems.github.com you only have to do this once)
-   $ sudo gem install georgi-git_store
+    $ gem sources -a http://gems.github.com you only have to do this once)
+    $ sudo gem install georgi-git_store
 
 If you don't have RubyGems 1.2.0, you may download the package on the
 [github page][4] and build the gem yourself:
 
-   $ gem build git_store.gemspec
-   $ sudo gem install git_store
+    $ gem build git_store.gemspec
+    $ sudo gem install git_store
 
 
 ## Usage Example
 
 First thing you should do, is to initialize a new git repository.
 
-    mkdir test
-    cd test
-    git init
+    $ mkdir test
+    $ cd test
+    $ git init
 
 Now you can instantiate a GitStore instance and store some data. The
 data will be serialized depending on the file extension. So for YAML
