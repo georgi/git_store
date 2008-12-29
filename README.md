@@ -51,7 +51,7 @@ Note that directories will be created automatically.
 
 Another way to access a path is:
 
-    store[config', 'wiki.yml'] = { 'name' => 'My Personal Wiki' }
+    store['config', 'wiki.yml'] = { 'name' => 'My Personal Wiki' }
 
 Finally you can access the git store as a Hash of Hashes, but in this
 case you have to create the Tree objects manually:
@@ -91,7 +91,7 @@ Serialization is dependent on the filename extension. You can add more
 handlers if you like, the interface is like this:
 
     class YAMLHandler
-      def read(id, name, data)
+      def read(name, data)
         YAML.load(data)
       end
    
