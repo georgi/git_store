@@ -77,7 +77,7 @@ meaningful way. For example you may separate the config files and the
 pages of a wiki:
 
     store['pages/home.yml'] = WikiPage.new('matthias', 'Home', 'This is the home page...')
-    store['pages/about.yml'] = WikiPage.new('matthias', About', 'About this site...')
+    store['pages/about.yml'] = WikiPage.new('matthias', 'About', 'About this site...')
     store['pages/links.yml'] = WikiPage.new('matthias', 'Links', 'Some useful links...')
     store['config/wiki.yml'] = { 'name' => 'My Personal Wiki' }
 
@@ -115,7 +115,7 @@ Shinmun uses its own handler for files with `md` extension:
       end    
     end
 
-    GitStore::Handler[md'] = PostHandler.new
+    GitStore::Handler['md'] = PostHandler.new
 
 
 ## Related Work
