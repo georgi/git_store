@@ -1,40 +1,50 @@
-$:.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
-
 require 'git_store'
 require 'yaml'
 
 describe GitStore do
 
-  REPO = File.expand_path(File.dirname(__FILE__) + '/test_repo')
+  REPO = File.expand_path(File.dirname(__FILE__) + '/repo')
 
   before do
     FileUtils.rm_rf REPO
     Dir.mkdir REPO
     Dir.chdir REPO
-    `git init`
   end
 
   def store
-    @store or
-      begin
-        @store = GitStore.new(REPO)
-        @store.load
-        @store
-      end
+    @store
   end
-
+  
   def file(file, data)
     FileUtils.mkpath(File.dirname(file))
     open(file, 'w') { |io| io << data }
-    `git add #{file}`
-    `git commit -m 'added #{file}'`
-    File.unlink(file)
+    if @use_git
+      `git add #{file}`
+      `git commit -m 'added #{file}'`
+      File.unlink(file)
+    end
+  end
+
+  def self.it(text, &block)
+    super "#{text} with git" do
+      `git init`
+      @use_git = true
+      @store = GitStore.new
+      instance_eval(&block)
+    end
+    
+    super "#{text} without git" do
+      @use_git = false
+      @store = GitStore::FileStore.new
+      instance_eval(&block)
+    end
   end
 
   it 'should load a repo' do
     file 'a', 'Hello'
     file 'b', 'World'
-    
+
+    store.load
     store['a'].should == 'Hello'
     store['b'].should == 'World'
   end
@@ -43,6 +53,7 @@ describe GitStore do
     file 'x/a', 'Hello'
     file 'y/b', 'World'
     
+    store.load
     store['x'].should be_kind_of(GitStore::Tree)
     store['y'].should be_kind_of(GitStore::Tree)
 
@@ -51,29 +62,35 @@ describe GitStore do
   end
 
   it 'should commit added files' do
-    store['c'] = 'Hello'
-    store['d'] = 'World'
-    store.commit
+    if @use_git      
+      store.load
+      store['c'] = 'Hello'
+      store['d'] = 'World'
+      store.commit
 
-    `git checkout`
+      `git checkout`
 
-    File.should be_exist('c')
-    File.should be_exist('d')
+      File.should be_exist('c')
+      File.should be_exist('d')
 
-    File.read('c').should == 'Hello'
-    File.read('d').should == 'World'
+      File.read('c').should == 'Hello'
+      File.read('d').should == 'World'
+    end
   end
 
   it 'should load yaml' do
     file 'x/a.yml', '[1, 2, 3, 4]'
 
-    store['x']['a.yml'].should == [1,2,3,4]
+    store.load
     
+    store['x']['a.yml'].should == [1,2,3,4]    
     store['x']['a.yml'] = [1,2,3,4,5]
+
+    store.root.to_hash.should == { "x" => { "a.yml" => "--- \n- 1\n- 2\n- 3\n- 4\n- 5\n"} }
 
     store.commit
     store.load
-    
+
     store['x']['a.yml'].should == [1,2,3,4,5]
   end
 
@@ -81,6 +98,7 @@ describe GitStore do
     file 'x/a', 'Hello'
     file 'y/b', 'World'
     
+    store.load
     store['x/a'].should == 'Hello'
     store['y/b'].should == 'World'
 
@@ -94,6 +112,7 @@ describe GitStore do
   end
 
   it 'should create new trees' do
+    store.load
     store['new/tree'] = 'This tree'
     store['this', 'tree'] = 'Another'    
     store.commit
@@ -104,6 +123,7 @@ describe GitStore do
   end
 
   it 'should preserve loaded trees' do
+    store.load
     tree = store['tree'] = GitStore::Tree.new
     store['tree']['example'] = 'Example'
     store.commit
@@ -113,5 +133,3 @@ describe GitStore do
   end
 
 end
-
-

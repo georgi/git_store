@@ -16,7 +16,11 @@ LICENSE
 README.md
 git_store.gemspec
 lib/git_store.rb
-spec/git_store_spec.rb
+lib/git_store/blob.rb
+lib/git_store/tree.rb
+lib/git_store/handlers.rb
+test/git_store_spec.rb
+test/benchmark.rb
 }
 end
 
