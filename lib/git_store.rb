@@ -1,155 +1,318 @@
 require 'rubygems'
-require 'grit'
+require 'zlib'
+require 'digest/sha1'
 require 'yaml'
 
 require 'git_store/blob'
 require 'git_store/tree'
 require 'git_store/handlers'
+require 'git_store/pack'
 
+# GitStore implements a versioned data store based on the revision
+# management system git. You can store object hierarchies as nested
+# hashes, which will be mapped on the directory structure of a git
+# repository.
+#
+# GitStore supports transactions, so that updates to the store either
+# fail or succeed completely.
+#
+# GitStore manages concurrent access by a file locking scheme. So only
+# one process can start a transaction at one time. This is implemented
+# by locking the `refs/head/<branch>.lock` file, which is also respected
+# by the git binary.
+#
+# A regular commit should be atomic by the nature of git, as the only
+# critical part is writing the 40 bytes SHA1 hash of the commit object
+# to the file `refs/head/<branch>`, which is done atomically by the
+# operating system.
+#
+# So reading a repository should be always consistent in a git
+# repository. The head of a branch points to a commit object, which in
+# turn points to a tree object, which itself is a snapshot of the
+# GitStore at commit time. All involved objects are keyed by their
+# SHA1 value, so there is no chance for another process to write to
+# the same files.
+#
 class GitStore
   include Enumerable
 
-  attr_reader :repo, :index, :root, :last_commit
+  attr_reader :path, :index, :root, :branch, :lock_file, :head  
 
-  def initialize(path = '.')
-    @repo = Grit::Repo.new(path)
-    @root = Tree.new('')
-    load_last_commit
+  # Initialize a store.
+  def initialize(path, branch = 'master')
+    @path   = path.chomp('/')
+    @branch = branch
+    @root   = Tree.new(self)
+    
+    load_packs("#{path}/.git/objects/pack")
+    load
   end
 
-  def load_last_commit
-    @last_commit = @repo.commits('master', 1)[0]
+  # The path to the current head file.
+  def head_path
+    "#{path}/.git/refs/heads/#{branch}"
   end
-  
-  def commit(message="")
-    head = repo.heads.first
-    commit_index(message, head ? head.commit.id : nil)
+
+  # The path to the object file for given id.
+  def object_path(id)
+    "#{path}/.git/objects/#{ id[0...2] }/#{ id[2..39] }"
   end
-  
+
+  # Read the id of the head commit.
+  #
+  # Returns the object id of the last commit.
+  def read_head
+    File.read(head_path).strip if File.exists?(head_path)
+  end
+
+  # Read an object for the specified path.
+  #
+  # Use multiple arguments or a string with slashes.
   def [](*args)
     root[*args]
   end
 
+  # Write an object to the specified path.
+  #
+  # Use multiple arguments or a string with slashes.
   def []=(*args)
     value = args.pop
     root[*args] = value
   end
 
-  def delete(path)
-    root.delete(path)
+  # Delete the specified path.
+  #
+  # Use multiple arguments or a string with slashes.
+  def delete(*args)
+    root.delete(*args)
   end
 
-  def load
-    root.load(repo.tree)
+  # Returns the store as a hash tree.
+  def to_hash
+    root.to_hash
   end
 
+  # Inspect the store.
+  def inspect
+    "#<GitStore #{path} #{branch} #{root.to_hash.inspect}>"
+  end
+
+  # Iterate over all values found in this store.
   def each(&block)
     root.each(&block)
   end
 
+  # Has our store been changed on disk?
   def changed?
-    commit = repo.commits('master', 1)[0]
-    commit and (last_commit.nil? or last_commit.id != commit.id)
+    head != read_head
   end
 
   def refresh!
     load if changed?
   end
 
-  def start_transaction(head = 'master')
-    @lock = open("#{repo.path}/refs/heads/#{head}.lock", "w")
-    @lock.flock(File::LOCK_EX)
+  # Load the current head version from repository. 
+  def load
+    if @head = read_head
+      commit = get_object(head)[0]
+      root.id = commit.split(/[ \n]/, 3)[1].strip
+      root.data = get_object(root.id)[0]
+      root.load_from_store
+    end
   end
 
-  def commit_index(message, parents = nil, actor = nil, head = 'master')
-    start_transaction(head) unless @lock
-    
-    tree_sha = write_tree(root)
-    
-    contents = []
-    contents << ['tree', tree_sha].join(' ')
+  # Reload the store, if it has been changed on disk.
+  def refresh!
+    load if changed?
+  end
 
-    if parents
-      parents.each do |p|
-        contents << ['parent', p].join(' ') if p        
-      end
-    end
+  # Do we have a current transacation?
+  def in_transaction?
+    Thread.current['git_store_lock']
+  end
 
-    if actor
-      name = actor.name
-      email = actor.email
-    else
-      config = Grit::Config.new(self.repo)
-      name = config['user.name']
-      email = config['user.email']
-    end
+  # All changes made inside a transaction are atomic. If some
+  # exception occurs the transaction will be rolled back.
+  #
+  # Example:
+  #   store.transaction { store['a'] = 'b' }
+  #
+  def transaction(message = "")
+    start_transaction
+    result = yield
+    commit message
     
-    author_string = "#{name} <#{email}> #{Time.now.to_i} -0700"
-    contents << ['author', author_string].join(' ')
-    contents << ['committer', author_string].join(' ')
-    contents << ''
-    contents << message
-    
-    commit_sha = put_raw_object(contents.join("\n"), 'commit')
-    
-    open("#{repo.path}/refs/heads/#{head}", "w") do |file|
-      file.write(commit_sha)
-    end
-    
-    commit_sha
+    result
+  rescue
+    rollback
+    raise
   ensure
-    @lock.close if @lock
-    @lock = nil
-    File.unlink("#{repo.path}/refs/heads/#{head}.lock") rescue nil
+    finish_transaction
   end
 
-  def put_raw_object(data, type)
-    repo.git.ruby_git.put_raw_object(data, type)
-  end
-
-  def write_blob(blob)
-    return if not blob.modified?
+  # Start a transaction.
+  #
+  # Tries to get lock on lock file, reload the this store if
+  # has changed in the repository.
+  def start_transaction
+    file = open("#{head_path}.lock", "w")
+    file.flock(File::LOCK_EX)
     
-    blob.sha1 = put_raw_object(blob.serialize, 'blob')
-    blob.modified = false
+    Thread.current['git_store_lock'] = file
+    
+    load if changed?
+  end
+
+  # Restore the state of the store.
+  #
+  # Any changes made to the store are discarded.
+  def rollback
+    root.load_from_store
+    finish_transaction
   end
   
-  def write_tree(tree)
-    return if not tree.modified?
+  # Finish the transaction.
+  #
+  # Release the lock file.
+  def finish_transaction
+    Thread.current['git_store_lock'].close rescue nil
+    Thread.current['git_store_lock'] = nil
     
-    contents = tree.data.map do |name, entry|
-      case entry
-      when Blob; write_blob(entry)
-      when Tree; write_tree(entry)
-      end
-      "%s %s\0%s" % [entry.mode, name, [entry.sha1].pack("H*")]
+    File.unlink("#{head_path}.lock") rescue nil    
+  end
+
+  # Write the commit object to disk and set the head of the current branch.
+  #
+  # Returns the id of the commit object
+  def commit(message = '', author = 'ruby', committer = 'ruby')
+    time = "#{ Time.now.to_i } #{ Time.now.to_s.split[4] }"
+    tree = root.write_to_store
+
+    contents = [ "tree #{tree}", (head and "parent #{head}"),
+                 "author #{author} #{time}",
+                 "committer #{committer} #{time}", '', message
+                 ].compact.join("\n")
+
+    id = put_object(contents, 'commit')
+
+    open(head_path, "wb") do |file|
+      file.write(id)
     end
 
-    tree.modified = false
-    tree.sha1 = put_raw_object(contents.join, 'tree')
+    @head = id
+  end
+
+  # Read the raw object with the given id from the repository.
+  #
+  # Returns a pair of content and type of the object
+  def get_object(id)
+    path = object_path(id)
+    
+    if File.exists?(path)
+      buf = open(path, "rb") { |f| f.read }
+    else
+      get_object_from_pack(id)
+    end
+    
+    raise if not legacy_loose_object?(buf)
+    
+    header, content = Zlib::Inflate.inflate(buf).split(/\0/, 2)
+    type, size = header.split(/ /, 2)
+    
+    raise if size.to_i != content.size
+    
+    return content, type
+  end
+
+  def get_object_from_pack(id)
+    packs.each do |pack|
+      data = pack[id] and return data
+    end
+  end      
+
+  # Returns the hash value of an object string.
+  def sha(str)
+    Digest::SHA1.hexdigest(str)[0, 40]
+  end
+
+  # Write a raw object to the repository.
+  #
+  # Returns the object id.
+  def put_object(content, type)
+    size = content.length.to_s    
+    header = "#{type} #{size}\0"
+    data = header + content
+    
+    id = sha(data)
+    path = object_path(id)
+    
+    unless File.exists?(path)
+      FileUtils.mkpath(File.dirname(path))
+      open(path, 'wb') do |f|
+        f.write Zlib::Deflate.deflate(data)
+      end
+    end
+    
+    id
+  end
+
+  def legacy_loose_object?(buf)
+    word = (buf[0] << 8) + buf[1]
+    buf[0] == 0x78 && word % 31 == 0
+  end  
+
+  def load_packs(path)
+    if File.directory?(path)
+      Dir.open(path) do |dir|
+        entries = dir.select { |entry| entry =~ /\.pack$/i }
+        @packs = entries.map { |entry| PackStorage.new(File.join(path, entry)) }
+      end
+    end
   end
   
+  # FileStore reads a working copy out of a directory. Changes made to
+  # the store will not be written to a repository. This is useful, if
+  # you want to read a filesystem without having a git repository.
   class FileStore < GitStore
 
-    attr_reader :path
-    
-    def initialize(path = '.')
-      @path = path
-      @root = Tree.new('')
+    def initialize(path)
+      @mtime = {}
+      super
     end
 
     def load
       root.load_from_disk
+      
+      each_blob_in(root) do |blob|
+        @mtime[blob.path] = File.mtime("#{path}/#{blob.path}")
+      end
     end
 
+    def each_blob_in(tree, &blob)
+      tree.table.each do |name, entry|
+        case entry
+        when Blob; yield entry
+        when Tree; each_blob_in(entry, &blob)
+        end
+      end
+    end        
+
     def refresh!
-      root.each_blob do |blob|
-        
+      each_blob_in(root) do |blob|
+        path = "#{self.path}/#{blob.path}"
+        if File.exist?(path)
+          mtime = File.mtime(path)
+          if @mtime[blob.path] != mtime
+            @mtime[blob.path] = mtime
+            blob.load_from_disk
+          end
+        else
+          delete blob.path
+        end
       end
     end
 
     def commit(message="")
-      root.write_to_disk
     end
     
   end

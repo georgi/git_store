@@ -1,84 +1,64 @@
 class GitStore
 
+  # This class stores the raw string data of a blob, but also the
+  # deserialized data object.
   class Blob
 
-    attr_accessor :sha1, :mode, :path, :blob, :file, :modified
-    alias_method :modified?, :modified
+    attr_accessor :store, :id, :mode, :path, :data
 
-    def initialize(data, path, modified = false)
-      @path = path
-      @modified = modified
-      
-      case data
-      when Grit::Blob
-        @blob = data
-        @sha1 = blob.id
-        @mode = blob.mode
-      when File
-        @file = data
-        @sha1 = Digest::SHA1.hexdigest(file.read)
-        @mode = '%o' % file.stat.mode
-      else
-        @data = data
-        @sha1 = Digest::SHA1.hexdigest(serialize)
-        @mode = '100644'
-      end
+    # Initialize a Blob with default mode of '100644'.
+    def initialize(store)
+      @store = store
+      @mode = '100644'
     end
 
-    def name
-      File.basename(path)
+    # Set all attributes at once.
+    def set(id, mode = nil, path = nil, data = nil, object = nil)
+      @id, @mode, @path, @data, @object = id, mode, path, data, object
     end
 
+    # Returns the extension of the filename.
     def extname
-      File.extname(name)[1..-1]
+      File.extname(path)[1..-1]
     end
 
-    def load(data)
-      handler.read(path, data)
-    end
-
-    def reload
-      load raw_data
-    end
-
-    def raw_data
-      if @blob
-        @blob.data
-      elsif @file
-        @file.rewind
-        @file.read
-      end
-    end
-
+    # Returns the handler for serializing the blob data.
     def handler
       Handler[extname]
     end
 
-    def data
-      @data ||= load(raw_data)
+    # Returns true if data is new or hash value is different from current id.
+    def modified?
+      id.nil? || @modified
     end
 
-    def data=(data)
-      @data = data
+    # Returns the data object.
+    def object
+      @object ||= handler.read(path, data)
     end
 
-    def write_to_disk
-      if handler.respond_to?(:write)
-        FileUtils.mkpath(File.dirname(path))
-        open(path, "w") do |io|
-          io << handler.write(path, data)
-        end
-      end
+    # Set the data object.
+    def object=(value)
+      @modified = true
+      @object = value
+      @data = handler.respond_to?(:write) ? handler.write(path, value) : value
     end
 
-    def serialize
-      if handler.respond_to?(:write)
-        handler.write(path, data)
+    def load_from_disk
+      @object = nil
+      @data = open("#{store.path}/#{path}", 'rb') { |f| f.read }
+    end
+
+    # Write the data to the git object store
+    def write_to_store      
+      if modified?
+        @modified = false
+        @id = store.put_object(data, 'blob')
       else
-        raw_data
+        @id
       end
-    end
-    
+    end   
+
   end
 
 end

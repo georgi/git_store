@@ -1,24 +1,30 @@
 require 'git_store'
+require 'grit'
 require 'benchmark'
 require 'fileutils'
 
-FileUtils.rm_rf 'repo'
-FileUtils.mkpath 'repo'
-Dir.chdir 'repo'
+REPO = File.expand_path(File.dirname(__FILE__) + '/repo')
+
+FileUtils.rm_rf REPO
+FileUtils.mkpath REPO
+Dir.chdir REPO
 
 `git init`
 
-store = GitStore.new
+store = GitStore.new(REPO)
 
-'a'.upto('z') do |tree|
-  'aa'.upto('zz') do |key|
-    store[tree, key] = (1..10).map { rand.to_s }
+Benchmark.bm 20 do |x|
+  x.report 'store 1000 objects' do
+    store.transaction { 'aaa'.upto('jjj') { |key| store[key] = rand.to_s } }
   end
-end
-
-store.commit
-
-Benchmark.bm do |x|
-  x.report { store['a', 'bb'] = "x" * 100; store.commit }
+  x.report 'commit one object' do
+    store.transaction { store['aa'] = rand.to_s }
+  end
+  x.report 'load 1000 objects' do
+    GitStore.new('.')
+  end
+  x.report 'load 1000 with grit' do
+    Grit::Repo.new('.').tree.contents.each { |e| e.data }
+  end  
 end
 
