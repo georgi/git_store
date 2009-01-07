@@ -36,7 +36,7 @@ require 'git_store/pack'
 class GitStore
   include Enumerable
 
-  attr_reader :path, :index, :root, :branch, :lock_file, :head  
+  attr_reader :path, :index, :root, :branch, :lock_file, :head, :packs
 
   # Initialize a store.
   def initialize(path, branch = 'master')
