@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'git_store'
-  s.version = '0.2'
+  s.version = '0.2.1'
   s.date = '2008-12-17'
   s.summary = 'a simple data store based on git'
   s.author = 'Matthias Georgi'
