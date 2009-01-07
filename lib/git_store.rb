@@ -43,6 +43,7 @@ class GitStore
     @path   = path.chomp('/')
     @branch = branch
     @root   = Tree.new(self)
+    @packs  = {}
     
     load_packs("#{path}/.git/objects/pack")
     load
@@ -210,25 +211,17 @@ class GitStore
     
     if File.exists?(path)
       buf = open(path, "rb") { |f| f.read }
+
+      raise if not legacy_loose_object?(buf)
+      
+      header, content = Zlib::Inflate.inflate(buf).split(/\0/, 2)
+      type, size = header.split(/ /, 2)
     else
-      get_object_from_pack(id)
+      content, type = get_object_from_pack(id)
     end
-    
-    raise if not legacy_loose_object?(buf)
-    
-    header, content = Zlib::Inflate.inflate(buf).split(/\0/, 2)
-    type, size = header.split(/ /, 2)
-    
-    raise if size.to_i != content.size
     
     return content, type
   end
-
-  def get_object_from_pack(id)
-    packs.each do |pack|
-      data = pack[id] and return data
-    end
-  end      
 
   # Returns the hash value of an object string.
   def sha(str)
@@ -244,7 +237,7 @@ class GitStore
     data = header + content
     
     id = sha(data)
-    path = object_path(id)
+    path = object_path(id)    
     
     unless File.exists?(path)
       FileUtils.mkpath(File.dirname(path))
@@ -258,14 +251,27 @@ class GitStore
 
   def legacy_loose_object?(buf)
     word = (buf[0] << 8) + buf[1]
+    
     buf[0] == 0x78 && word % 31 == 0
   end  
 
+  def get_object_from_pack(id)
+    pack, offset = @packs[id]
+        
+    pack.parse_object(offset) if pack
+  end      
+
   def load_packs(path)
     if File.directory?(path)
-      Dir.open(path) do |dir|
+      Dir.open(path) do |dir|        
         entries = dir.select { |entry| entry =~ /\.pack$/i }
-        @packs = entries.map { |entry| PackStorage.new(File.join(path, entry)) }
+        entries.each do |entry|
+          pack = PackStorage.new(File.join(path, entry))
+          pack.each_entry do |id, offset|
+            id = id.unpack("H*").first
+            @packs[id] = [pack, offset]
+          end
+        end
       end
     end
   end

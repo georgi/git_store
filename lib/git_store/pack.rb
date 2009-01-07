@@ -13,7 +13,15 @@ require 'zlib'
 
 class GitStore
   PACK_SIGNATURE = "PACK" 
-  PACK_IDX_SIGNATURE = "\377tOc" 
+  PACK_IDX_SIGNATURE = "\377tOc"
+  85
+  OBJ_NONE = 0
+  OBJ_COMMIT = 1
+  OBJ_TREE = 2
+  OBJ_BLOB = 3
+  OBJ_TAG = 4
+
+  OBJ_TYPES = [nil, 'commit', 'tree', 'blob', 'tag'].freeze
 
   class Mmap
     def initialize(file, version = 1)
@@ -111,8 +119,10 @@ class GitStore
     
     def with_packfile
       packfile = File.open(@name)
-      yield packfile
+      result = yield packfile
       packfile.close
+
+      result
     end
     
     def cache_objects
@@ -272,14 +282,12 @@ class GitStore
     private :find_object
     
     def parse_object(offset)
-      obj = nil
-      with_packfile do |packfile|
-        data, type = unpack_object(packfile, offset)
-        obj = RawObject.new(OBJ_TYPES[type], data)
+      data, type = with_packfile do |packfile|
+        unpack_object(packfile, offset)
       end
-      obj
+
+      return data, OBJ_TYPES[type]
     end
-    protected :parse_object
 
     def unpack_object(packfile, offset, options = {})
       obj_offset = offset
