@@ -1,5 +1,3 @@
-require 'strscan'
-
 class GitStore
 
   class Tree
@@ -50,6 +48,7 @@ class GitStore
     def load_from_disk
       dir = File.join(store.path, self.path)
       entries = Dir.entries(dir) - ['.', '..']
+
       @table = entries.inject({}) do |hash, name|
         if name[-1, 1] != '~' && name[0, 1] != '.'
           path = "#{dir}/#{name}"
@@ -71,11 +70,13 @@ class GitStore
     #
     # Return an array of [mode, name, id] entries.
     def read_contents(data)
-      scanner = StringScanner.new(data)
       contents = []
-      
-      while scanner.scan(/(.*?) (.*?)\0(.{20})/m)
-        contents << [scanner[1], scanner[2], scanner[3].unpack("H*").first]
+
+      while data.size > 0
+        mode, data = data.split(" ", 2)
+        name, data = data.split("\0", 2)
+        id = data.slice!(0, 20).unpack("H*").first
+        contents << [ mode, name, id ]
       end
 
       contents

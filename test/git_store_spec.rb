@@ -1,6 +1,4 @@
 require 'git_store'
-require 'yaml'
-require 'pp'
 
 describe GitStore do
 
@@ -74,7 +72,7 @@ describe GitStore do
   it 'should load a repo' do
     file 'a', 'Hello'
     file 'b', 'World'
-
+   
     store.load
 
     store['a'].should == 'Hello'
