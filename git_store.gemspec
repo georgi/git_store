@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.files = %w{
 .gitignore
 LICENSE
+Rakefile
 README.md
 git_store.gemspec
 lib/git_store.rb
