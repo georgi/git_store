@@ -27,7 +27,7 @@ Rake::RDocTask.new do |rdoc|
   files = ["README.md", "LICENSE", "lib/**/*.rb"]
   rdoc.rdoc_files.add(files)
   rdoc.main = "README.md"
-  rdoc.title = "CouchRest: Ruby CouchDB, close to the metal"
+  rdoc.title = "Git Store - using Git as versioned data store in Ruby"
 end
 
 desc "Run the rspec"
