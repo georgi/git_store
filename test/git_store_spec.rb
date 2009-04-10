@@ -1,4 +1,4 @@
-require 'git_store'
+require "#{File.dirname(__FILE__)}/../lib/git_store"
 
 describe GitStore do
 
@@ -98,7 +98,15 @@ describe GitStore do
     end
   end
 
-  shared_examples_for 'git store' do
+  describe 'with Git' do
+    before(:each) do
+      `git init`
+      @use_git = true
+      @store = GitStore.new(REPO)
+    end
+
+    it_should_behave_like 'all stores'
+
     it 'should have a head commit' do
       file 'a', 'Hello'
 
@@ -182,17 +190,6 @@ describe GitStore do
       File.read('c').should == 'Hello'
       File.read('d').should == 'World'
     end
-  end
-
-  describe 'with Git' do
-    before(:each) do
-      `git init`
-      @use_git = true
-      @store = GitStore.new(REPO)
-    end
-
-    it_should_behave_like 'all stores'
-    it_should_behave_like 'git store'
   end
 
   describe 'without Git' do
