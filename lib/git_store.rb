@@ -45,8 +45,14 @@ class GitStore
     @root   = Tree.new(self)
     @packs  = {}
     
+    raise(ArgumentError, "first argument must be a valid Git repository") unless valid?
+
     load_packs("#{path}/.git/objects/pack")
     load
+  end
+
+  def valid?
+    File.exists?("#{path}/.git")
   end
 
   # The path to the current head file.
@@ -284,6 +290,7 @@ class GitStore
     def initialize(path)
       @mtime = {}
       super
+    rescue ArgumentError
     end
 
     def load

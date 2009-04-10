@@ -2,7 +2,8 @@ require "#{File.dirname(__FILE__)}/../lib/git_store"
 
 describe GitStore do
 
-  REPO = File.expand_path(File.dirname(__FILE__) + '/repo')
+  #REPO = File.expand_path(File.dirname(__FILE__) + '/repo')
+  REPO = '/tmp/git_store_test'
 
   before(:each) do
     FileUtils.rm_rf REPO
@@ -199,5 +200,11 @@ describe GitStore do
     end
 
     it_should_behave_like 'all stores'
+  end
+
+  it 'should fail to initialize without a valid git repository' do
+    lambda {
+      GitStore.new(REPO)
+    }.should raise_error(ArgumentError)
   end
 end
