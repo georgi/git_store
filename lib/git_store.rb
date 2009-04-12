@@ -294,8 +294,7 @@ class GitStore
     end
 
     def load
-      root.load_from_disk
-      
+      root.load_from_disk      
       each_blob_in(root) do |blob|
         @mtime[blob.path] = File.mtime("#{path}/#{blob.path}")
       end
@@ -311,6 +310,9 @@ class GitStore
     end        
 
     def refresh!
+      # FIXME: newly added files wont be found
+      
+      root.load_from_disk
       each_blob_in(root) do |blob|
         path = "#{self.path}/#{blob.path}"
         if File.exist?(path)
