@@ -1,4 +1,4 @@
-require 'rubygems'
+ 'rubygems'
 require 'zlib'
 require 'digest/sha1'
 require 'yaml'
@@ -174,7 +174,7 @@ class GitStore
   #
   # Any changes made to the store are discarded.
   def rollback
-    root.load_from_store
+    load
     finish_transaction
   end
   
