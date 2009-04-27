@@ -1,8 +1,11 @@
 require "#{File.dirname(__FILE__)}/../lib/git_store"
+require 'pp'
 
 describe GitStore::Commit do
   
   REPO = '/tmp/git_store_test'
+
+  attr_reader :store
 
   before(:each) do
     FileUtils.rm_rf REPO
@@ -31,10 +34,10 @@ This is a message"
 
   it "should be readable by git binary" do
     time = Time.local(2009, 4, 20)
-    author = @store.user_info("hans <hans@email.de>", time)
+    author = store.user_info("hans <hans@email.de>", time)
     
-    @store['a'] = "Yay"
-    commit = @store.commit("Commit Message", author, author)
+    store['a'] = "Yay"
+    commit = store.commit("Commit Message", author, author)
 
     IO.popen("git log") do |io|
       io.gets.should == "commit #{commit.id}\n"
@@ -43,6 +46,28 @@ This is a message"
       io.gets.should == "\n"
       io.gets.should == "    Commit Message\n"
     end
+  end
+
+  it "should diff 2 commits" do
+    store['x'] = 'a'
+    store['y'] = "
+First Line.
+Second Line.
+Last Line.
+"
+    a = store.commit
+
+    store.delete('x')
+    store['y'] = "
+First Line.
+Last Line.
+Another Line.
+"
+    store['z'] = 'c'
+
+    b = store.commit
+
+    pp b.diff(a)
   end
   
 end

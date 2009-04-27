@@ -9,21 +9,15 @@ class GitStore
     # Initialize a Blob
     def initialize(store, id = nil, data = nil)
       @store = store
-      @id = id
+      @id = id || store.id_for('blob', data)
       @data = data
       @mode = "100644"
     end
 
-    # Returns true if id is nil.
-    def modified?
-      id.nil?
-    end
-
     # Write the data to the git object store
     def write
-      return @id if @id      
       @id = store.put_object('blob', data)
-    end   
+    end
 
   end
 

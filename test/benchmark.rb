@@ -3,7 +3,7 @@ require 'grit'
 require 'benchmark'
 require 'fileutils'
 
-REPO = File.expand_path(File.dirname(__FILE__) + '/repo')
+REPO = '/tmp/git-store'
 
 FileUtils.rm_rf REPO
 FileUtils.mkpath REPO
@@ -21,7 +21,7 @@ Benchmark.bm 20 do |x|
     store.transaction { store['aa'] = rand.to_s }
   end
   x.report 'load 1000 objects' do
-    GitStore.new('.')
+    GitStore.new('.').values { |v| v }
   end
   x.report 'load 1000 with grit' do
     Grit::Repo.new('.').tree.contents.each { |e| e.data }

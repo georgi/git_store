@@ -5,6 +5,7 @@ require 'yaml'
 require 'fileutils'
 
 require 'git_store/blob'
+require 'git_store/diff'
 require 'git_store/tree'
 require 'git_store/pack'
 require 'git_store/commit'
@@ -134,7 +135,7 @@ class GitStore
 
   # Inspect the store.
   def inspect
-    "#<GitStore #{path} #{branch} #{root.to_hash.inspect}>"
+    "#<GitStore #{path} #{branch}>"
   end
 
   # Has our store been changed on disk?
@@ -253,26 +254,20 @@ class GitStore
     @head = commit
   end
 
-  def log(start = head, limit = 10)
-    entries = [start]
+  def commits(limit = 10, start = head)
+    entries = []
     current = start
     
-    while current.parent.first and entries.size < limit
-      current = get current.parent.first
+    while current and entries.size < limit
       entries << current
+      current = get(current.parent.first)
     end
 
     entries
   end
 
-  def history(path, start = head, limit = 10)
-    log(start, limit).map {|commit|
-      tree = get commit.tree
-      tree[path]
-    }.uniq
-  end
-  
   def get(id)
+    return nil if id.nil?
     type, content = get_object(id)
 
     klass = TYPE_CLASS[type]

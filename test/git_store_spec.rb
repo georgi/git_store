@@ -157,6 +157,22 @@ describe GitStore do
     git_show(a[0][2]).should == 'Changed'
     git_show(x[0][2]).should == 'Added'
   end
+  
+  it "should save blobs" do
+    store['a'] = 'a'
+    store['b'] = 'b'
+    store['c'] = 'c'
+
+    store.commit
+
+    a = store.id_for('blob', 'a')
+    b = store.id_for('blob', 'b')
+    c = store.id_for('blob', 'c')
+
+    git_show(a).should == 'a'
+    git_show(b).should == 'b'
+    git_show(c).should == 'c'
+  end  
 
   it 'should allow only one transaction' do
     file 'a/b', 'Hello'
@@ -196,8 +212,8 @@ describe GitStore do
     store['b'] = 'b'
     store.commit 'added b'
 
-    store.log[0].message.should == 'added b'
-    store.log[1].message.should == 'added a'
+    store.commits[0].message.should == 'added b'
+    store.commits[1].message.should == 'added a'
   end
 
   it "should load file histories" do

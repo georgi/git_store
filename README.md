@@ -17,17 +17,10 @@ respected by the git binary.
 
 ### Installation
 
-GitStore can be installed as gem easily, if you have RubyGems 1.2.0:
+GitStore can be installed as gem easily:
 
     $ gem sources -a http://gems.github.com
     $ sudo gem install georgi-git_store
-
-If you don't have RubyGems 1.2.0, you may download the package on the
-[github page][4] and build the gem yourself:
-
-    $ gem build git_store.gemspec
-    $ sudo gem install git_store
-
 
 ### Usage Example
 
@@ -40,8 +33,6 @@ First thing you should do, is to initialize a new git repository.
 Now you can instantiate a GitStore instance and store some data. The
 data will be serialized depending on the file extension. So for YAML
 storage you can use the 'yml' extension:
-
-    @@ruby
 
     store = GitStore.new('/path/to/repo')
 
@@ -82,72 +73,14 @@ a transaction, all changes will be rolled back to the original state.
 
     store.rollback # This will restore the original state
 
-
-### Performance
-
-Maintaining 1000 objects in one folder seems to yield quite usable
-results. If I run the following benchmark:
-
-    Benchmark.bm 20 do |x|
-      x.report 'store 1000 objects' do
-        store.transaction { 'aaa'.upto('jjj') { |key| store[key] = rand.to_s } }
-      end
-      x.report 'commit one object' do
-        store.transaction { store['aa'] = rand.to_s }
-      end
-      x.report 'load 1000 objects' do
-        GitStore.new('.')
-      end
-      x.report 'load 1000 with grit' do
-        Grit::Repo.new('.').tree.contents.each { |e| e.data }
-      end  
-    end
-
-
-I get following results:
-
-                              user     system      total        real
-    store 1000 objects    4.150000   0.880000   5.030000 (  5.035804)
-    commit one object     0.070000   0.020000   0.090000 (  0.082252)
-    load 1000 objects     0.630000   0.120000   0.750000 (  0.750765)
-    load 1000 with grit   1.960000   0.260000   2.220000 (  2.228583)
-
-
-In a real world scenario, you should partition your data. For example,
-my blog engine [Shinmun][7], stores posts in folders by month.
-
-One nice thing about the results is, that GitStore loads large
-directories three times faster than [Grit][2].
-
-
 ### Where is my data?
 
 When you call the `commit` method, your data is written back straight
 into the git repository. No intermediate file representation. So if
-you want to look into your data, you can use some git browser like
-[git-gui][6] or just checkout the files:
+you want to have a look at your data, you can use a git browser like
+[git-gui][6] or checkout the files:
 
     $ git checkout
-
-
-### Development Mode
-
-There is also some kind of development mode, which is convenient to
-use. Imagine you are tweaking the design of your blog, which is
-storing its pages in a GitStore. You don't want to commit each change
-to some change in your browser. FileStore helps you here:
-
-    store = GitStore::FileStore.new('.')
-
-    # Access the file 'posts/2009/1/git-store.md'
-
-    p store['posts', 2009, 1, 'git-store.md']
-
-
-FileStore forbids you to write to the disk, as this makes no sense. If
-you want to store something programmatically, you have to use the real
-GitStore.
-
 
 ### Iteration
 
@@ -170,34 +103,30 @@ pages of a wiki:
 Serialization is dependent on the filename extension. You can add more
 handlers if you like, the interface is like this:
 
-    @@ruby
-
     class YAMLHandler
-      def read(path, data)
+      def read(data)
         YAML.load(data)
       end
    
-      def write(path, data)
+      def write(data)
         data.to_yaml
       end    
     end
 
-    GitStore::Handler['yml'] = YAMLHandler.new
-
-
 Shinmun uses its own handler for files with `md` extension:
 
     class PostHandler
-      def read(path, data)
-        Post.new(:path => path, :src => data)
+      def read(data)
+        Post.new(:src => data)
       end
    
-      def write(path, post)
+      def write(post)
         post.dump
       end    
     end
 
-    GitStore::Handler['md'] = PostHandler.new
+    store = GitStore.new('.')
+    store.handler['md'] = PostHandler.new
 
 
 ### GitStore on GitHub
