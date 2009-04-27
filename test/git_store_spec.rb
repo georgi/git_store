@@ -18,6 +18,7 @@ describe GitStore do
   def file(file, data)
     FileUtils.mkpath(File.dirname(file))
     open(file, 'w') { |io| io << data }
+    
     if @use_git
       `git add #{file}`
       `git commit -m 'added #{file}'`
@@ -70,6 +71,11 @@ describe GitStore do
       store['x']['a.yml'] = [1,2,3,4,5]
     end
 
+    it 'should save yaml' do
+      store['x/a.yml'] = [1,2,3,4,5]      
+      store['x/a.yml'].should == [1,2,3,4,5]
+    end
+
     it 'should resolve paths' do
       file 'x/a', 'Hello'
       file 'y/b', 'World'
@@ -86,9 +92,7 @@ describe GitStore do
 
     it 'should create new trees' do
       store['new/tree'] = 'This tree'
-      store['this', 'tree'] = 'Another'    
       store['new/tree'].should == 'This tree'
-      store['this/tree'].should == 'Another'
     end
 
     it 'should delete entries' do
@@ -106,13 +110,13 @@ describe GitStore do
       @store = GitStore.new(REPO)
     end
 
-    it_should_behave_like 'all stores'
+     it_should_behave_like 'all stores'
 
     it 'should have a head commit' do
       file 'a', 'Hello'
 
-      store.read_head.should_not be_nil
-      File.should be_exist(store.object_path(store.read_head))
+      store.load
+      store.head.should_not be_nil
     end
 
     it 'should detect changes' do
@@ -191,7 +195,17 @@ describe GitStore do
       File.read('c').should == 'Hello'
       File.read('d').should == 'World'
     end
-  end
+    
+    it 'should find all objects' do
+      store.load
+      store['c'] = 'Hello'
+      store['d'] = 'World'
+      store.commit
+
+      store.to_a.should == [['c', 'Hello'], ['d', 'World']]
+    end
+    
+   end
 
   describe 'without Git' do
     before(:each) do
@@ -207,4 +221,5 @@ describe GitStore do
       GitStore.new(REPO)
     }.should raise_error(ArgumentError)
   end
+  
 end

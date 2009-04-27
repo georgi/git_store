@@ -1,12 +1,14 @@
- 'rubygems'
+require 'rubygems'
 require 'zlib'
 require 'digest/sha1'
 require 'yaml'
+require 'fileutils'
 
 require 'git_store/blob'
 require 'git_store/tree'
-require 'git_store/handlers'
 require 'git_store/pack'
+require 'git_store/commit'
+require 'git_store/handlers'
 
 # GitStore implements a versioned data store based on the revision
 # management system git. You can store object hierarchies as nested
@@ -36,16 +38,27 @@ require 'git_store/pack'
 class GitStore
   include Enumerable
 
-  attr_reader :path, :index, :root, :branch, :lock_file, :head, :packs
+  TYPE_CLASS = {
+    'tree' => Tree,
+    'blob' => Blob,
+    'commit' => Commit
+  }     
+
+  attr_reader :path, :index, :root, :branch, :lock_file, :head, :packs, :handler
 
   # Initialize a store.
   def initialize(path, branch = 'master')
-    @path   = path.chomp('/')
-    @branch = branch
-    @root   = Tree.new(self)
-    @packs  = {}
+    @path    = path.chomp('/')
+    @branch  = branch
+    @root    = Tree.new(self)
+    @packs   = {}
+    @handler = {
+      'yml' => YAMLHandler.new
+    }
     
-    raise(ArgumentError, "first argument must be a valid Git repository") unless valid?
+    @handler.default = DefaultHandler.new      
+    
+    raise(ArgumentError, "first argument must be a valid Git repository: `#{path}'") unless valid?
 
     load_packs("#{path}/.git/objects/pack")
     load
@@ -68,30 +81,39 @@ class GitStore
   # Read the id of the head commit.
   #
   # Returns the object id of the last commit.
-  def read_head
+  def read_head_id
     File.read(head_path).strip if File.exists?(head_path)
   end
 
+  def handler_for(path)
+    handler[ path.split('.').last ]
+  end
+
   # Read an object for the specified path.
-  #
-  # Use multiple arguments or a string with slashes.
-  def [](*args)
-    root[*args]
+  def [](path)
+    root[path] 
   end
 
   # Write an object to the specified path.
-  #
-  # Use multiple arguments or a string with slashes.
-  def []=(*args)
-    value = args.pop
-    root[*args] = value
+  def []=(path, data)
+    root[path] = data
   end
 
-  # Delete the specified path.
-  #
-  # Use multiple arguments or a string with slashes.
-  def delete(*args)
-    root.delete(*args)
+  # Iterate over all key-values pairs found in this store.
+  def each(&block)
+    root.each(&block)
+  end
+
+  def paths
+    root.paths
+  end
+
+  def values
+    root.values
+  end
+
+  def delete(path)
+    root.delete(path)
   end
 
   # Returns the store as a hash tree.
@@ -104,27 +126,16 @@ class GitStore
     "#<GitStore #{path} #{branch} #{root.to_hash.inspect}>"
   end
 
-  # Iterate over all values found in this store.
-  def each(&block)
-    root.each(&block)
-  end
-
   # Has our store been changed on disk?
   def changed?
-    head != read_head
-  end
-
-  def refresh!
-    load if changed?
+    head.nil? or head.id != read_head_id
   end
 
   # Load the current head version from repository. 
   def load
-    if @head = read_head
-      commit = get_object(head)[0]
-      root.id = commit.split(/[ \n]/, 3)[1].strip
-      root.data = get_object(root.id)[0]
-      root.load_from_store
+    if id = read_head_id
+      @head = get(id)
+      @root = get(@head.tree)
     end
   end
 
@@ -182,6 +193,7 @@ class GitStore
   #
   # Release the lock file.
   def finish_transaction
+
     Thread.current['git_store_lock'].close rescue nil
     Thread.current['git_store_lock'] = nil
     
@@ -193,20 +205,25 @@ class GitStore
   # Returns the id of the commit object
   def commit(message = '', author = 'ruby', committer = 'ruby')
     time = "#{ Time.now.to_i } #{ Time.now.to_s.split[4] }"
-    tree = root.write_to_store
 
-    contents = [ "tree #{tree}", (head and "parent #{head}"),
-                 "author #{author} #{time}",
-                 "committer #{committer} #{time}", '', message
-                 ].compact.join("\n")
+    commit = Commit.new(self)
+    commit.tree = root.write_to_store
+    commit.parent << head if head
+    commit.author = "#{author} #{time}"
+    commit.committer = "#{committer} #{time}"
+    commit.message = message
 
-    id = put_object(contents, 'commit')
+    id = commit.write_to_store
 
     open(head_path, "wb") do |file|
       file.write(id)
     end
 
-    @head = id
+    @head = commit
+  end
+
+  def log
+    
   end
 
   # Read the raw object with the given id from the repository.
@@ -229,6 +246,13 @@ class GitStore
     return content, type
   end
 
+  def get(id)
+    content, type = get_object(id)
+
+    klass = TYPE_CLASS[type]
+    klass.new(self, id, content)
+  end
+
   # Returns the hash value of an object string.
   def sha(str)
     Digest::SHA1.hexdigest(str)[0, 40]
@@ -238,7 +262,7 @@ class GitStore
   #
   # Returns the object id.
   def put_object(content, type)
-    size = content.length.to_s    
+    size = content.length.to_s 
     header = "#{type} #{size}\0"
     data = header + content
     
@@ -263,7 +287,7 @@ class GitStore
 
   def get_object_from_pack(id)
     pack, offset = @packs[id]
-        
+    
     pack.parse_object(offset) if pack
   end      
 
@@ -294,35 +318,19 @@ class GitStore
     end
 
     def load
-      root.load_from_disk      
-      each_blob_in(root) do |blob|
-        @mtime[blob.path] = File.mtime("#{path}/#{blob.path}")
-      end
-    end
+      root.load_from_disk('')
 
-    def each_blob_in(tree, &blob)
-      tree.table.each do |name, entry|
-        case entry
-        when Blob; yield entry
-        when Tree; each_blob_in(entry, &blob)
-        end
-      end
-    end        
-
-    def refresh!
-      # FIXME: newly added files wont be found
-      
-      root.load_from_disk
-      each_blob_in(root) do |blob|
-        path = "#{self.path}/#{blob.path}"
-        if File.exist?(path)
-          mtime = File.mtime(path)
-          if @mtime[blob.path] != mtime
-            @mtime[blob.path] = mtime
-            blob.load_from_disk
+      each do |path, data|
+        file = "#{self.path}/#{path}"
+        
+        if File.exist?(file)
+          mtime = File.mtime(file)
+          
+          if @mtime[path] != mtime
+            @mtime[path] = mtime
+            blob = root.resolv(path)
+            blob.load_from_disk(path)
           end
-        else
-          delete blob.path
         end
       end
     end

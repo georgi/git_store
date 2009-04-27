@@ -4,59 +4,31 @@ class GitStore
   # deserialized data object.
   class Blob
 
-    attr_accessor :store, :id, :mode, :path, :data
+    attr_accessor :store, :id, :data
 
-    # Initialize a Blob with default mode of '100644'.
-    def initialize(store)
+    # Initialize a Blob
+    def initialize(store, id = nil, data = nil)
       @store = store
-      @mode = '100644'
+      @id = id
+      @data = data
     end
 
-    # Set all attributes at once.
-    def set(id, mode = nil, path = nil, data = nil, object = nil)
-      @id, @mode, @path, @data, @object = id, mode, path, data, object
-    end
-
-    # Returns the extension of the filename.
-    def extname
-      File.extname(path)[1..-1]
-    end
-
-    # Returns the handler for serializing the blob data.
-    def handler
-      Handler[extname]
-    end
-
-    # Returns true if data is new or hash value is different from current id.
+    # Returns true if id is nil.
     def modified?
-      id.nil? || @modified
+      id.nil?
     end
 
-    # Returns the data object.
-    def object
-      @object ||= handler.read(path, data)
+    def load_from_store
     end
-
-    # Set the data object.
-    def object=(value)
-      @modified = true
-      @object = value
-      @data = handler.respond_to?(:write) ? handler.write(path, value) : value
-    end
-
-    def load_from_disk
-      @object = nil
+    
+    def load_from_disk(path)
       @data = open("#{store.path}/#{path}", 'rb') { |f| f.read }
     end
 
     # Write the data to the git object store
     def write_to_store      
-      if modified?
-        @modified = false
-        @id = store.put_object(data, 'blob')
-      else
-        @id
-      end
+      return @id if @id      
+      @id = store.put_object(data, 'blob')
     end   
 
   end

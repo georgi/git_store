@@ -1,27 +1,18 @@
 class GitStore
 
   class Tree
-    TYPE_CLASS = {
-      'tree' => Tree,
-      'blob' => Blob
-    }
-    
     include Enumerable
 
     attr_reader :store
-    attr_accessor :id, :mode, :path, :data, :table
+    attr_accessor :id, :data, :table
 
-    # Initialize a tree with default mode '040000'
-    def initialize(store)
-      @store = store      
-      @mode ||= '040000'
-      @path = ''
+    # Initialize a tree
+    def initialize(store, id = nil, data = nil)
+      @store = store
+      @id = id
+      @data = data
       @table = {}
-    end
-
-    # Set all attributes at once.
-    def set(id, mode = '040000', path = nil, data = nil)
-      @id, @mode, @path, @data = id, mode, path, data
+      load_from_store if data
     end
 
     # Does this tree exist in the repository?
@@ -34,41 +25,32 @@ class GitStore
       @modified || (table && table.values.any? { |value| value.modified? })
     end
 
-    # Path of a child element with specified name.
-    def child_path(name)
-      path.empty? ? name : "#{path}/#{name}"
-    end
-
     # Find or create a subtree with specified name.
     def tree(name)
       get(name) or put(name, Tree.new(store))
     end
 
-    # Load this tree from a real directory instead of a repository.
-    def load_from_disk
-      dir = File.join(store.path, self.path)
-      entries = Dir.entries(dir) - ['.', '..']
+    # Load this tree from a real directory.
+    def load_from_disk(path)
+      dir = File.join(store.path, path)
+      entries = Dir.entries(dir)
 
-      @table = entries.inject({}) do |hash, name|
+      @table.clear
+
+      entries.each do |name|
         if name[-1, 1] != '~' && name[0, 1] != '.'
-          path = "#{dir}/#{name}"
-          stat = File.stat(path)
-          mode = '%o' % stat.mode
+          stat = File.stat("#{dir}/#{name}")
           klass = stat.directory? ? Tree : Blob
-          
-          child = table[name] ||= klass.new(store)
-          child.set(nil, mode, child_path(name), data)
-          child.load_from_disk
-          
-          hash[name] = child
+          child = klass.new(store)
+          child.load_from_disk("#{path}/#{name}")
+          @table[name] = child
         end        
-        hash
       end
     end
 
     # Read the contents of a raw git object.
     #
-    # Return an array of [mode, name, id] entries.
+    # Return an array of [name, id] entries.
     def read_contents(data)
       contents = []
 
@@ -76,7 +58,7 @@ class GitStore
         mode, data = data.split(" ", 2)
         name, data = data.split("\0", 2)
         id = data.slice!(0, 20).unpack("H*").first
-        contents << [ mode, name, id ]
+        contents << [ name, id ]
       end
 
       contents
@@ -84,15 +66,9 @@ class GitStore
 
     # Load this tree from a git repository.
     def load_from_store
-      @table = read_contents(data).inject({}) do |hash, (mode, name, id)|
-        content, type = store.get_object(id)
-
-        child = table[name] || TYPE_CLASS[type].new(store)
-        child.set(id, mode, child_path(name), content)
-        child.load_from_store if Tree === child
-
-        hash[name] = child
-        hash
+      @table.clear
+      read_contents(data).each do |name, id|
+        @table[name] = store.get(id)
       end
     end
 
@@ -104,20 +80,23 @@ class GitStore
       
       contents = table.map do |name, entry|
         entry.write_to_store
-        "%s %s\0%s" % [entry.mode, name, [entry.id].pack("H*")]
+        "0777 %s\0%s" % [name, [entry.id].pack("H*")]
       end
 
       @modified = false
       @id = store.put_object(contents.join, 'tree')
     end
-    
+
+    def handler_for(name)
+      store.handler_for(name)
+    end
+
     # Read entry with specified name.
     def get(name)
-      name = name.to_s
       entry = table[name]
       
       case entry
-      when Blob; entry.object
+      when Blob; handler_for(name).read(entry.data)
       when Tree; entry
       end
     end
@@ -125,19 +104,13 @@ class GitStore
     # Write entry with specified name.
     def put(name, value)
       @modified = true
-      name = name.to_s
       
       if value.is_a?(Tree)
-        value.path = child_path(name)
         table[name] = value
       else
-        blob = table[name]
-        blob = Blob.new(store) if not blob.is_a?(Blob)
-        blob.path = child_path(name)
-        blob.object = value
-        table[name] = blob          
+        table[name] = Blob.new(store, nil, handler_for(name).write(value))
       end
-
+     
       value
     end
 
@@ -149,52 +122,66 @@ class GitStore
 
     # Does this key exist in the table?
     def has_key?(name)
-      table.has_key?(name)
+      table.has_key?(name.to_s)
     end
 
+    def normalize_path(path)
+      path[0, 1] == '/' ? path[1..-1] : path
+    end    
+
     # Read a value on specified path.
-    #
-    # Use an argument list or a string with slashes.
-    def [](*args)
-      args = args.first.to_s.split('/') if args.size == 1
-      args.inject(self) { |tree, key| tree.get(key) or return nil }
+    def [](path)
+      normalize_path(path).split('/').inject(self) { |tree, key| tree.get(key) or return nil }
+    end
+
+    def resolv(path)
+      normalize_path(path).split('/').inject(self) { |tree, key| tree.table[key] or return nil }
     end
 
     # Write a value on specified path.
-    #
-    # Use an argument list or a string with slashes.
-    def []=(*args)
-      value = args.pop
-      args = args.first.to_s.split('/') if args.size == 1
-      tree = args[0..-2].to_a.inject(self) { |tree, name| tree.tree(name) }
-      tree.put(args.last, value)
+    def []=(path, value)
+      list = normalize_path(path).split('/')
+      tree = list[0..-2].to_a.inject(self) { |tree, name| tree.tree(name) }
+      tree.put(list.last, value)
     end
 
     # Delete a value on specified path.
-    #
-    # Use an argument list or a string with slashes.
-    def delete(*args)
-      args = args.first.to_s.split('/') if args.size == 1
-      tree = args[0..-2].to_a.inject(self) do |tree, key|
+    def delete(path)
+      list = normalize_path(path).split('/')
+      
+      tree = list[0..-2].to_a.inject(self) do |tree, key|
         tree.get(key) or return
       end
-      tree.remove(args.last)
+      
+      tree.remove(list.last)
     end
 
     # Iterate over all objects found in this subtree.
-    def each(&block)
+    def each(path = [], &block)
       table.sort.each do |name, entry|
+        child_path = path + [name]
         case entry
-        when Blob; yield entry.object
-        when Tree; entry.each(&block)
+        when Blob
+          yield child_path.join("/"), handler_for(name).read(entry.data)
+          
+        when Tree
+          entry.each(child_path, &block)
         end
       end
+    end
+    
+    def paths
+      map { |path, data| path }
+    end
+
+    def values
+      map { |path, data| data }
     end
 
     # Convert this tree into a hash object.
     def to_hash
       table.inject({}) do |hash, (name, entry)|
-        hash[name] = entry.is_a?(Tree) ? entry.to_hash : entry.object
+        hash[name] = entry.is_a?(Tree) ? entry.to_hash : handler_for(name).read(entry.data)
         hash
       end
     end

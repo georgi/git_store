@@ -15,43 +15,22 @@ end
 class GitStore
 
   class DefaultHandler
-    def read(path, data)
+    def read(data)
       data
     end
     
-    def write(path, data)
+    def write(data)
       data.to_s
     end
   end
   
   class YAMLHandler    
-    def read(path, data)
+    def read(data)
       YAML.load(data)
     end
 
-    def write(path, data)
+    def write(data)
       data.to_yaml
-    end    
-  end
-
-  class RubyHandler
-    def read(path, data)
-      Object.module_eval(data)
     end
   end
-
-  class ERBHandler
-    def read(path, data)
-      ERB.new(data)
-    end
-  end
-
-  Handler = {
-    'yml' => YAMLHandler.new,
-    'rhtml' => ERBHandler.new,
-    'rxml' => ERBHandler.new,
-    'rb' => RubyHandler.new
-  }
-
-  Handler.default = DefaultHandler.new
 end
