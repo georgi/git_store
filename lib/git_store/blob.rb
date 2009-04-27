@@ -4,13 +4,14 @@ class GitStore
   # deserialized data object.
   class Blob
 
-    attr_accessor :store, :id, :data
+    attr_accessor :store, :id, :data, :mode, :object
 
     # Initialize a Blob
     def initialize(store, id = nil, data = nil)
       @store = store
       @id = id
       @data = data
+      @mode = "100644"
     end
 
     # Returns true if id is nil.
@@ -18,17 +19,10 @@ class GitStore
       id.nil?
     end
 
-    def load_from_store
-    end
-    
-    def load_from_disk(path)
-      @data = open("#{store.path}/#{path}", 'rb') { |f| f.read }
-    end
-
     # Write the data to the git object store
-    def write_to_store      
+    def write
       return @id if @id      
-      @id = store.put_object(data, 'blob')
+      @id = store.put_object('blob', data)
     end   
 
   end

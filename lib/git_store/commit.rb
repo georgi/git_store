@@ -5,19 +5,17 @@ class GitStore
 
     def initialize(store, id = nil, data = nil)
       @store = store
-      @id = data
-      @data = data
+      @id = id
       @parent = []
 
-      parse_data if data
+      parse(data) if data
     end
 
-    def parse_data
-      @headers, @message = data.split(/\n\n/, 2)
-      
-      @headers.split(/\n/).each do |header|
+    def parse(data)
+      headers, @message = data.split(/\n\n/, 2)
+
+      headers.split(/\n/).each do |header|
         key, value = header.split(/ /, 2)
-        
         if key == 'parent'
           @parent << value
         else
@@ -28,11 +26,11 @@ class GitStore
       self
     end
 
-    def write_to_store
-      store.put_object(to_s, 'commit')
+    def write
+      @id = store.put_object('commit', dump)
     end
 
-    def to_s
+    def dump
       [ "tree #@tree",
         @parent.map { |parent| "parent #{parent}" },
         "author #@author",

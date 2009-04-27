@@ -44,28 +44,35 @@ class GitStore
     'commit' => Commit
   }     
 
-  attr_reader :path, :index, :root, :branch, :lock_file, :head, :packs, :handler
+  attr_reader :path, :index, :root, :branch, :user, :lock_file, :head, :packs, :handler
 
   # Initialize a store.
   def initialize(path, branch = 'master')
+    if not File.exists?("#{path}/.git")
+      raise ArgumentError, "first argument must be a valid Git repository: `#{path}'"
+    end
+    
     @path    = path.chomp('/')
     @branch  = branch
     @root    = Tree.new(self)
     @packs   = {}
-    @handler = {
-      'yml' => YAMLHandler.new
-    }
     
-    @handler.default = DefaultHandler.new      
+    init_handler
     
-    raise(ArgumentError, "first argument must be a valid Git repository: `#{path}'") unless valid?
-
+    name = IO.popen("git config user.name")  { |io| io.gets.chomp }
+    email = IO.popen("git config user.email") { |io| io.gets.chomp }
+    
+    @user = "#{name} <#{email}>"
+    
     load_packs("#{path}/.git/objects/pack")
     load
   end
 
-  def valid?
-    File.exists?("#{path}/.git")
+  def init_handler
+    @handler = {
+      'yml' => YAMLHandler.new
+    }    
+    @handler.default = DefaultHandler.new
   end
 
   # The path to the current head file.
@@ -116,6 +123,10 @@ class GitStore
     root.delete(path)
   end
 
+  def tree(name)
+    root.tree(name)
+  end
+
   # Returns the store as a hash tree.
   def to_hash
     root.to_hash
@@ -132,10 +143,29 @@ class GitStore
   end
 
   # Load the current head version from repository. 
-  def load
+  def load(from_disk = false)
     if id = read_head_id
       @head = get(id)
       @root = get(@head.tree)
+    end
+    
+    load_from_disk
+  end
+  
+  def load_from_disk
+    @mtime ||= {}
+    
+    root.each_blob do |path, blob|
+      file = "#{self.path}/#{path}"
+      
+      if File.file?(file)
+        mtime = File.mtime(file)
+        
+        if @mtime[path] != mtime
+          @mtime[path] = mtime
+          blob.data = File.read(file)
+        end
+      end
     end
   end
 
@@ -144,7 +174,7 @@ class GitStore
     load if changed?
   end
 
-  # Do we have a current transacation?
+  # Is there any transaction going on?
   def in_transaction?
     Thread.current['git_store_lock']
   end
@@ -200,30 +230,62 @@ class GitStore
     File.unlink("#{head_path}.lock") rescue nil    
   end
 
+  def user_info(user, time)
+    "#{ user } #{ time.to_i } #{ time.to_s.split[4] }"
+  end
+
   # Write the commit object to disk and set the head of the current branch.
   #
   # Returns the id of the commit object
-  def commit(message = '', author = 'ruby', committer = 'ruby')
-    time = "#{ Time.now.to_i } #{ Time.now.to_s.split[4] }"
-
+  def commit(message = '', author = "#{user_info user, Time.now}", committer = "#{user_info user, Time.now}")
     commit = Commit.new(self)
-    commit.tree = root.write_to_store
-    commit.parent << head if head
-    commit.author = "#{author} #{time}"
-    commit.committer = "#{committer} #{time}"
+    commit.tree = root.write
+    commit.parent << head.id if head
+    commit.author = author
+    commit.committer = committer
     commit.message = message
-
-    id = commit.write_to_store
+    commit.write
 
     open(head_path, "wb") do |file|
-      file.write(id)
+      file.write(commit.id)
     end
 
     @head = commit
   end
 
-  def log
+  def log(start = head, limit = 10)
+    entries = [start]
+    current = start
     
+    while current.parent.first and entries.size < limit
+      current = get current.parent.first
+      entries << current
+    end
+
+    entries
+  end
+
+  def history(path, start = head, limit = 10)
+    log(start, limit).map {|commit|
+      tree = get commit.tree
+      tree[path]
+    }.uniq
+  end
+  
+  def get(id)
+    type, content = get_object(id)
+
+    klass = TYPE_CLASS[type]
+    klass.new(self, id, content)
+  end
+
+  # Returns the hash value of an object string.
+  def sha(str)
+    Digest::SHA1.hexdigest(str)[0, 40]
+  end
+
+  def id_for(type, content)
+    sha "#{type} #{content.length}\0#{content}"
   end
 
   # Read the raw object with the given id from the repository.
@@ -235,39 +297,26 @@ class GitStore
     if File.exists?(path)
       buf = open(path, "rb") { |f| f.read }
 
-      raise if not legacy_loose_object?(buf)
+      raise "not a loose object: #{id}" if not legacy_loose_object?(buf)
       
       header, content = Zlib::Inflate.inflate(buf).split(/\0/, 2)
       type, size = header.split(/ /, 2)
+      
+      raise "bad object: #{id}" if content.length != size.to_i
     else
       content, type = get_object_from_pack(id)
     end
     
-    return content, type
+    return type, content
   end
-
-  def get(id)
-    content, type = get_object(id)
-
-    klass = TYPE_CLASS[type]
-    klass.new(self, id, content)
-  end
-
-  # Returns the hash value of an object string.
-  def sha(str)
-    Digest::SHA1.hexdigest(str)[0, 40]
-  end
-
+  
   # Write a raw object to the repository.
   #
   # Returns the object id.
-  def put_object(content, type)
-    size = content.length.to_s 
-    header = "#{type} #{size}\0"
-    data = header + content
-    
+  def put_object(type, content)
+    data = "#{type} #{content.length}\0#{content}"    
     id = sha(data)
-    path = object_path(id)    
+    path = object_path(id)
     
     unless File.exists?(path)
       FileUtils.mkpath(File.dirname(path))
@@ -304,40 +353,6 @@ class GitStore
         end
       end
     end
-  end
-  
-  # FileStore reads a working copy out of a directory. Changes made to
-  # the store will not be written to a repository. This is useful, if
-  # you want to read a filesystem without having a git repository.
-  class FileStore < GitStore
-
-    def initialize(path)
-      @mtime = {}
-      super
-    rescue ArgumentError
-    end
-
-    def load
-      root.load_from_disk('')
-
-      each do |path, data|
-        file = "#{self.path}/#{path}"
-        
-        if File.exist?(file)
-          mtime = File.mtime(file)
-          
-          if @mtime[path] != mtime
-            @mtime[path] = mtime
-            blob = root.resolv(path)
-            blob.load_from_disk(path)
-          end
-        end
-      end
-    end
-
-    def commit(message="")
-    end
-    
   end
 
 end
