@@ -22,7 +22,7 @@ lib/git_store/diff.rb
 lib/git_store/tree.rb
 lib/git_store/handlers.rb
 lib/git_store/pack.rb
-test/blob_spec.rb
+test/tree_spec.rb
 test/commit_spec.rb
 test/git_store_spec.rb
 test/benchmark.rb
