@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'git_store'
-  s.version = '0.2.4'
+  s.version = '0.3'
   s.summary = 'a simple data store based on git'
   s.author = 'Matthias Georgi'
   s.email = 'matti.georgi@gmail.com'
@@ -17,9 +17,13 @@ README.md
 git_store.gemspec
 lib/git_store.rb
 lib/git_store/blob.rb
+lib/git_store/commit.rb
+lib/git_store/diff.rb
 lib/git_store/tree.rb
 lib/git_store/handlers.rb
 lib/git_store/pack.rb
+test/blob_spec.rb
+test/commit_spec.rb
 test/git_store_spec.rb
 test/benchmark.rb
 }
