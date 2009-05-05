@@ -67,7 +67,16 @@ Another Line.
 
     b = store.commit
 
-    pp b.diff(a)
+    diff = b.diff(a)
+
+    diff[0].a_path.should == 'x'
+    diff[0].deleted_file.should be_true
+
+    diff[1].a_path.should == 'y'
+    diff[1].diff.should == "--- a/y\n+++ b/y\n@@ -1,4 +1,4 @@\n \n First Line.\n-Second Line.\n Last Line.\n+Another Line."
+
+    diff[2].a_path.should == 'z'
+    diff[2].new_file.should be_true
   end
   
 end

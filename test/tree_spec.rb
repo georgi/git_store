@@ -89,22 +89,4 @@ describe GitStore::Tree do
        ["100644", "blob", "63d8dbd40c23542e740659a7168a0ce3138ea748", "b"],
        ["100644", "blob", "3410062ba67c5ed59b854387a8bc0ec012479368", "c"]]
   end
-
-  it "should diff two trees" do
-    a = GitStore::Tree.new(store)
-    b = GitStore::Tree.new(store)
-    
-    a['x'] = 'a'
-    a['y'] = 'b'
-    a['z'] = 'c'
-
-    b['x'] = 'a'
-    b['k'] = 'x'
-    b['z'] = 'x'
-    
-    b.diff(a).should ==
-      [[['k', b.table['k']]],
-       [['y', a.table['y']]],
-       [['z', b.table['z']]]]
-  end
 end

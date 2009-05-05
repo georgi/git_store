@@ -10,11 +10,6 @@ in-memory representation, which can be modified and finally committed.
 GitStore supports transactions, so that updates to the store either
 fail or succeed completely.
 
-GitStore manages concurrent access by a file locking scheme. So only
-one process can start a transaction at one time. This is implemented
-by locking the `refs/head/<branch>.lock` file, which is also
-respected by the git binary.
-
 ### Installation
 
 GitStore can be installed as gem easily:
@@ -41,22 +36,17 @@ storage you can use the 'yml' extension:
 
     store.commit 'Added user and page'
 
-    # Note, that directories will be created automatically.
-    # Another way to access a path is:
-
-    store['config', 'wiki.yml'] = { 'name' => 'My Personal Wiki' }
-
-    # Finally you can access the git store as a Hash of Hashes, but in
-    # this case you have to create the Tree objects manually:
-
-    puts store['users']['wiki.yml']['name']
-
-
 ### Transactions
 
-If you access the repository from different processes, you should
-write to your store using transactions. If something goes wrong inside
-a transaction, all changes will be rolled back to the original state.
+GitStore manages concurrent access by a file locking scheme. So only
+one process can start a transaction at one time. This is implemented
+by locking the `refs/head/<branch>.lock` file, which is also
+respected by the git binary.
+
+If you access the repository from different processes or threads, you
+should write to the store using transactions. If something goes wrong
+inside a transaction, all changes will be rolled back to the original
+state.
 
     store = GitStore.new('/path/to/repo')
 
@@ -65,7 +55,8 @@ a transaction, all changes will be rolled back to the original state.
       store['pages/home.yml'] = Page.new('matthias', 'Home')
     end
 
-    # transaction without a block
+
+A transaction without a block looks like this:
 
     store.start_transaction
  
@@ -73,7 +64,8 @@ a transaction, all changes will be rolled back to the original state.
 
     store.rollback # This will restore the original state
 
-### Where is my data?
+
+### Data Storage
 
 When you call the `commit` method, your data is written back straight
 into the git repository. No intermediate file representation. So if
@@ -81,6 +73,7 @@ you want to have a look at your data, you can use a git browser like
 [git-gui][6] or checkout the files:
 
     $ git checkout
+
 
 ### Iteration
 
@@ -91,11 +84,13 @@ pages of a wiki:
 
     store['pages/home.yml'] = Page.new('matthias', 'Home')
     store['pages/about.yml'] = Page.new('matthias', 'About')
-    store['pages/links.yml'] = WikiPage.new('matthias', 'Links')
     store['config/wiki.yml'] = { 'name' => 'My Personal Wiki' }
 
-    store.each { |obj| ... } # yields all pages and the config file
-    store['pages'].each { |page| ... } # yields only the pages
+    # Enumerate all objects
+    store.each { |obj| ... } 
+
+    # Enumerate only pages
+    store['pages'].each { |page| ... }
 
 
 ### Serialization

@@ -17,7 +17,7 @@ class GitStore
 
     # Has this tree been modified?
     def modified?
-      @modified or trees.any? { |tree| tree.modified? }
+      @modified or @table.values.any? { |entry| Tree === entry and entry.modified? }
     end
 
     # Find or create a subtree with specified name.
@@ -159,22 +159,6 @@ class GitStore
       map { |path, data| data }
     end
 
-    def blobs
-      values.select { |entry| Blob === entry }
-    end
-    
-    def trees
-      values.select { |entry| Tree === entry }
-    end
-
-    def diff(other)
-      add = table.select { |k, v| not other.table[k] }
-      del = other.table.select { |k, v| not table[k] }
-      chg = table.select { |k, v| o = other.table[k] and o.id != v.id  }
-
-      return add, del, chg
-    end
-      
     # Convert this tree into a hash object.
     def to_hash
       @table.inject({}) do |hash, (name, entry)|

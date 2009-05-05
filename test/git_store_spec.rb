@@ -82,6 +82,26 @@ describe GitStore do
     store['x/a.yml'].should == [1,2,3,4,5]
   end
 
+  it 'should detect modification' do    
+    store.transaction do
+      store['x/a'] = 'a'
+    end
+    
+    store.load
+    
+    store['x/a'].should == 'a'
+
+    store.transaction do
+      store['x/a'] = 'b'
+      store['x'].should be_modified
+      store.root.should be_modified
+    end
+
+    store.load
+
+    store['x/a'].should == 'b'
+  end
+
   it 'should resolve paths' do
     file 'x/a', 'Hello'
     file 'y/b', 'World'
@@ -188,7 +208,7 @@ describe GitStore do
       end
       store['a/b'] = 'Changed'
     end
-    
+
     sleep 0.01 until ready
 
     store.load
@@ -214,19 +234,6 @@ describe GitStore do
 
     store.commits[0].message.should == 'added b'
     store.commits[1].message.should == 'added a'
-  end
-
-  it "should load file histories" do
-    store['a'] = 'a'
-    store.commit 'added a'
-
-    store['b'] = 'b'
-    store.commit 'added b'
-    
-    store['b'] = 'c'
-    store.commit 'changed b'
-
-    store.history('b').should == ['c', 'b', nil]
   end
 
 end

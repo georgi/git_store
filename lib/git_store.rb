@@ -150,7 +150,7 @@ class GitStore
       @root = get(@head.tree)
     end
     
-    load_from_disk
+    load_from_disk if from_disk
   end
   
   def load_from_disk
@@ -224,7 +224,6 @@ class GitStore
   #
   # Release the lock file.
   def finish_transaction
-
     Thread.current['git_store_lock'].close rescue nil
     Thread.current['git_store_lock'] = nil
     
