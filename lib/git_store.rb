@@ -164,18 +164,10 @@ class GitStore
   end
   
   def load_from_disk
-    @mtime ||= {}
-    
     root.each_blob do |path, blob|
-      file = "#{self.path}/#{path}"
-      
+      file = "#{self.path}/#{path}"      
       if File.file?(file)
-        mtime = File.mtime(file)
-        
-        if @mtime[path] != mtime
-          @mtime[path] = mtime
-          blob.data = File.read(file)
-        end
+        blob.data = File.read(file)
       end
     end
   end
