@@ -42,7 +42,7 @@ This is a message"
     IO.popen("git log") do |io|
       io.gets.should == "commit #{commit.id}\n"
       io.gets.should == "Author: hans <hans@email.de>\n"
-      io.gets.should == "Date:   Mon Apr 20 00:00:00 2009 +0200\n"
+      io.gets.should == "Date:   Mon Apr 20 00:00:00 2009 #{Time.now.strftime('%z')}\n"
       io.gets.should == "\n"
       io.gets.should == "    Commit Message\n"
     end
