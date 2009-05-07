@@ -45,14 +45,16 @@ class GitStore
     'commit' => Commit
   }     
 
-  attr_reader :path, :index, :root, :branch, :user, :lock_file, :head, :packs, :handler
+  attr_reader :path, :index, :root, :branch, :user, :lock_file, :head, :packs, :handler, :bare
 
   # Initialize a store.
-  def initialize(path, branch = 'master')
-    if not File.exists?("#{path}/.git")
+  def initialize(path, branch = 'master', bare = false)
+    if bare && !File.exists?("#{path}") or 
+        !bare && !File.exists?("#{path}/.git")
       raise ArgumentError, "first argument must be a valid Git repository: `#{path}'"
     end
     
+    @bare    = bare
     @path    = path.chomp('/')
     @branch  = branch
     @root    = Tree.new(self)
@@ -65,7 +67,7 @@ class GitStore
     
     @user = "#{name} <#{email}>"
     
-    load_packs("#{path}/.git/objects/pack")
+    load_packs("#{git_path}/objects/pack")
     load
   end
 
@@ -78,12 +80,20 @@ class GitStore
 
   # The path to the current head file.
   def head_path
-    "#{path}/.git/refs/heads/#{branch}"
+    "#{git_path}/refs/heads/#{branch}"
   end
 
   # The path to the object file for given id.
   def object_path(id)
-    "#{path}/.git/objects/#{ id[0...2] }/#{ id[2..39] }"
+    "#{git_path}/objects/#{ id[0...2] }/#{ id[2..39] }"
+  end
+
+  def git_path
+    if bare
+      "#{path}"
+    else
+      "#{path}/.git"
+    end
   end
 
   # Read the id of the head commit.

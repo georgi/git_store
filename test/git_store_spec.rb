@@ -236,4 +236,39 @@ describe GitStore do
     store.commits[1].message.should == 'added a'
   end
 
+  describe 'use bare repository' do
+
+    BARE_REPO = '/tmp/git_store_test.git'
+
+    attr_reader :bare_store
+
+    before(:each) do
+      FileUtils.rm_rf BARE_REPO
+      Dir.mkdir BARE_REPO
+      Dir.chdir BARE_REPO
+
+      `git init --bare`
+      @bare_store = GitStore.new(BARE_REPO, 'master', true)
+    end
+
+    it 'should fail to initialize without a valid git repository' do
+      lambda {
+        GitStore.new('/foo', 'master', true)
+      }.should raise_error(ArgumentError)
+    end
+
+    it 'should find modified entries' do
+      bare_store['a'] = 'Hello'
+
+      bare_store.root.should be_modified
+
+      bare_store.commit
+
+      bare_store.root.should_not be_modified
+
+      bare_store['a'] = 'Bello'
+
+      bare_store.root.should be_modified
+    end
+  end
 end
