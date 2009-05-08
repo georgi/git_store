@@ -271,7 +271,7 @@ class GitStore
     return nil if id.nil?
     type, content = get_object(id)
 
-    klass = TYPE_CLASS[type]
+    klass = TYPE_CLASS[type] or raise NotImplementedError, "type not supported: #{type}"
     klass.new(self, id, content)
   end
 
