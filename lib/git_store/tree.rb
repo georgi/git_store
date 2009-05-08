@@ -15,6 +15,10 @@ class GitStore
       parse(data) if data
     end
 
+    def ==(other)
+      Tree === other and id == other.id
+    end
+
     # Has this tree been modified?
     def modified?
       @modified or @table.values.any? { |entry| Tree === entry and entry.modified? }
@@ -37,19 +41,18 @@ class GitStore
         @table[name] = store.get(id)
       end
     end
+
+    def dump
+      @table.map { |k, v| "#{ v.mode } #{ k }\0#{ [v.write].pack("H*") }" }.join
+    end
     
     # Write this tree back to the git repository.
     #
     # Returns the object id of the tree.
     def write
-      return id if not modified?
-      
-      contents = @table.map do |name, entry|
-        "#{ entry.mode } #{ name }\0#{ [entry.write].pack("H*") }"
-      end
-
+      return id if not modified?      
       @modified = false
-      @id = store.put_object('tree', contents.join)
+      @id = store.put(self)
     end
 
     # Read entry with specified name.

@@ -16,25 +16,24 @@ describe GitStore::Commit do
   end
 
   it "should dump in right format" do
-    time = Time.now    
-    timestamp = "#{ time.to_i } #{ time.to_s.split[4] }"
+    user = GitStore::User.new("hanni", "hanni@email.de", Time.now)
 
     commit = GitStore::Commit.new(nil)
     commit.tree = @store.root.id
-    commit.author = "hanni #{timestamp}"
-    commit.committer = "hanni #{timestamp}"
+    commit.author = user
+    commit.committer = user
     commit.message = "This is a message"
 
     commit.dump.should == "tree #{@store.root.id}
-author hanni #{timestamp}
-committer hanni #{timestamp}
+author #{user.dump}
+committer #{user.dump}
 
 This is a message"
   end
 
   it "should be readable by git binary" do
     time = Time.local(2009, 4, 20)
-    author = store.user_info("hans <hans@email.de>", time)
+    author = GitStore::User.new("hans", "hans@email.de", time)
     
     store['a'] = "Yay"
     commit = store.commit("Commit Message", author, author)

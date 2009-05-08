@@ -14,9 +14,17 @@ class GitStore
       @mode = "100644"
     end
 
+    def ==(other)
+      Blob === other and id == other.id
+    end
+
+    def dump
+      @data
+    end
+
     # Write the data to the git object store
     def write
-      @id = store.put_object('blob', data)
+      @id = store.put(self)
     end
 
   end

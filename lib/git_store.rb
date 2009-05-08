@@ -7,6 +7,8 @@ require 'fileutils'
 require 'git_store/blob'
 require 'git_store/diff'
 require 'git_store/tree'
+require 'git_store/tag'
+require 'git_store/user'
 require 'git_store/pack'
 require 'git_store/commit'
 require 'git_store/handlers'
@@ -42,10 +44,18 @@ class GitStore
   TYPE_CLASS = {
     'tree' => Tree,
     'blob' => Blob,
-    'commit' => Commit
+    'commit' => Commit,
+    'tag' => Tag
   }     
 
-  attr_reader :path, :index, :root, :branch, :user, :lock_file, :head, :packs, :handler, :bare
+  CLASS_TYPE = {
+    Tree => 'tree',
+    Blob => 'blob',
+    Commit => 'commit',
+    Tag => 'tag'
+  }     
+
+  attr_reader :path, :index, :root, :branch, :lock_file, :head, :packs, :handler, :bare, :objects
 
   # Initialize a store.
   def initialize(path, branch = 'master', bare = false)
@@ -59,13 +69,9 @@ class GitStore
     @branch  = branch
     @root    = Tree.new(self)
     @packs   = {}
+    @objects = {}
     
     init_handler
-    
-    name = IO.popen("git config user.name")  { |io| io.gets.chomp }
-    email = IO.popen("git config user.email") { |io| io.gets.chomp }
-    
-    @user = "#{name} <#{email}>"
     
     load_packs("#{git_path}/objects/pack")
     load
@@ -157,7 +163,7 @@ class GitStore
   def load(from_disk = false)
     if id = read_head_id
       @head = get(id)
-      @root = get(@head.tree)
+      @root = @head.tree
     end
     
     load_from_disk if from_disk
@@ -218,6 +224,7 @@ class GitStore
   #
   # Any changes made to the store are discarded.
   def rollback
+    objects.clear
     load
     finish_transaction
   end
@@ -232,16 +239,14 @@ class GitStore
     File.unlink("#{head_path}.lock") rescue nil    
   end
 
-  def user_info(user, time)
-    "#{ user } #{ time.to_i } #{ time.to_s.split[4] }"
-  end
-
   # Write the commit object to disk and set the head of the current branch.
   #
   # Returns the id of the commit object
-  def commit(message = '', author = "#{user_info user, Time.now}", committer = "#{user_info user, Time.now}")
+  def commit(message = '', author = User.from_config, committer = author)
+    root.write
+    
     commit = Commit.new(self)
-    commit.tree = root.write
+    commit.tree = root
     commit.parent << head.id if head
     commit.author = author
     commit.committer = committer
@@ -269,10 +274,24 @@ class GitStore
 
   def get(id)
     return nil if id.nil?
+
+    return objects[id] if objects.has_key?(id)
+    
     type, content = get_object(id)
 
     klass = TYPE_CLASS[type] or raise NotImplementedError, "type not supported: #{type}"
-    klass.new(self, id, content)
+    
+    objects[id] = klass.new(self, id, content)
+  end
+
+  def put(object)
+    type = CLASS_TYPE[object.class] or raise NotImplementedError, "class not supported: #{object.class}"
+    
+    id = put_object(type, object.dump)
+
+    objects[id] = object
+
+    id
   end
 
   # Returns the hash value of an object string.
@@ -320,7 +339,7 @@ class GitStore
         f.write Zlib::Deflate.deflate(data)
       end
     end
-    
+
     id
   end
 

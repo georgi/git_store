@@ -1,9 +1,7 @@
 class GitStore
 
   class Commit 
-    attr_accessor :store, :id, :data, :author, :committer, :tree, :parent, :message, :headers
-    attr_reader :author_name, :author_email, :author_time
-    attr_reader :committer_name, :committer_email, :committer_time
+    attr_accessor :store, :id, :tree, :parent, :author, :committer, :message
 
     def initialize(store, id = nil, data = nil)
       @store = store
@@ -11,28 +9,29 @@ class GitStore
       @parent = []
 
       parse(data) if data
-
-      @author_name, @author_email, @author_time = parse_user(author) if author
-      @committer_name, @commiter_email, @committer_time = parse_user(committer) if committer
     end
 
-    def parse_user(user)
-      if match = user.match(/(.*)<(.*)> (\d+) ([+-]\d+)/)
-        [ match[1].chomp,
-          match[2].chomp,
-          Time.at(match[3].to_i)]
-      end
-    end
+    def ==(other)
+      Commit === other and id == other.id
+    end    
 
     def parse(data)
       headers, @message = data.split(/\n\n/, 2)
 
       headers.split(/\n/).each do |header|
         key, value = header.split(/ /, 2)
-        if key == 'parent'
+        case key
+        when 'parent'
           @parent << value
-        else
-          instance_variable_set "@#{key}", value
+
+        when 'author'
+          @author = User.parse(value)
+
+        when 'committer'
+          @committer = User.parse(value)
+
+        when 'tree'
+          @tree = store.get(value)
         end
       end
 
@@ -49,16 +48,16 @@ class GitStore
     end
 
     def write
-      @id = store.put_object('commit', dump)
+      @id = store.put(self)
     end
 
     def dump
-      [ "tree #@tree",
-        @parent.map { |parent| "parent #{parent}" },
-        "author #@author",
-        "committer #@committer",
+      [ "tree #{ tree.id }",
+        parent.map { |parent| "parent #{parent}" },
+        "author #{ author.dump }",
+        "committer #{ committer.dump }",
         '',
-        @message ].flatten.join("\n")
+        message ].flatten.join("\n")
     end
     
   end
