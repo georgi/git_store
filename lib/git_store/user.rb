@@ -14,7 +14,7 @@ class GitStore
     def self.from_config
       name = IO.popen("git config user.name")  { |io| io.gets.chomp }
       email = IO.popen("git config user.email") { |io| io.gets.chomp }
-      
+
       new name, email, Time.now
     end
 
@@ -22,8 +22,8 @@ class GitStore
       if match = user.match(/(.*)<(.*)> (\d+) ([+-]\d+)/)
         new match[1].strip, match[2].strip, Time.at(match[3].to_i + match[4].to_i * 3600)
       end
-    end    
-    
+    end
+
   end
-  
+
 end

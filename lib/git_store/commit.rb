@@ -1,6 +1,6 @@
 class GitStore
 
-  class Commit 
+  class Commit
     attr_accessor :store, :id, :tree, :parent, :author, :committer, :message
 
     def initialize(store, id = nil, data = nil)
@@ -13,7 +13,7 @@ class GitStore
 
     def ==(other)
       Commit === other and id == other.id
-    end    
+    end
 
     def parse(data)
       headers, @message = data.split(/\n\n/, 2)
@@ -59,7 +59,7 @@ class GitStore
         '',
         message ].flatten.join("\n")
     end
-    
+
   end
 
 end

@@ -37,7 +37,7 @@ class GitStore
         mode, data = data.split(" ", 2)
         name, data = data.split("\0", 2)
         id = data.slice!(0, 20).unpack("H*").first
-        
+
         @table[name] = store.get(id)
       end
     end
@@ -45,12 +45,12 @@ class GitStore
     def dump
       @table.map { |k, v| "#{ v.mode } #{ k }\0#{ [v.write].pack("H*") }" }.join
     end
-    
+
     # Write this tree back to the git repository.
     #
     # Returns the object id of the tree.
     def write
-      return id if not modified?      
+      return id if not modified?
       @modified = false
       @id = store.put(self)
     end
@@ -58,11 +58,11 @@ class GitStore
     # Read entry with specified name.
     def get(name)
       entry = @table[name]
-      
+
       case entry
       when Blob
         entry.object ||= handler_for(name).read(entry.data)
-          
+
       when Tree
         entry
       end
@@ -70,18 +70,18 @@ class GitStore
 
     def handler_for(name)
       store.handler_for(name)
-    end    
+    end
 
     # Write entry with specified name.
     def put(name, value)
       @modified = true
-      
+
       if value.is_a?(Tree)
         @table[name] = value
       else
         @table[name] = Blob.new(store, nil, handler_for(name).write(value))
       end
-     
+
       value
     end
 
@@ -98,7 +98,7 @@ class GitStore
 
     def normalize_path(path)
       (path[0, 1] == '/' ? path[1..-1] : path).split('/')
-    end    
+    end
 
     # Read a value on specified path.
     def [](path)
@@ -117,11 +117,11 @@ class GitStore
     # Delete a value on specified path.
     def delete(path)
       list = normalize_path(path)
-      
+
       tree = list[0..-2].to_a.inject(self) do |tree, key|
         tree.get(key) or return
       end
-      
+
       tree.remove(list.last)
     end
 
@@ -133,7 +133,7 @@ class GitStore
         when Blob
           entry.object ||= handler_for(name).read(entry.data)
           yield child_path.join("/"), entry.object
-          
+
         when Tree
           entry.each(child_path, &block)
         end
@@ -147,7 +147,7 @@ class GitStore
         case entry
         when Blob
           yield child_path.join("/"), entry
-          
+
         when Tree
           entry.each_blob(child_path, &block)
         end
@@ -165,7 +165,7 @@ class GitStore
     # Convert this tree into a hash object.
     def to_hash
       @table.inject({}) do |hash, (name, entry)|
-        if entry.is_a?(Tree) 
+        if entry.is_a?(Tree)
           hash[name] = entry.to_hash
         else
           hash[name] = entry.object ||= handler_for(name).read(entry.data)
@@ -177,7 +177,7 @@ class GitStore
     def inspect
       "#<GitStore::Tree #{id} #{mode} #{to_hash.inspect}>"
     end
-    
+
   end
 
 end

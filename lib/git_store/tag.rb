@@ -12,7 +12,7 @@ class GitStore
 
     def ==(other)
       Tag === other and id == other.id
-    end        
+    end
 
     def parse(data)
       headers, @message = data.split(/\n\n/, 2)

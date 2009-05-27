@@ -18,13 +18,13 @@ class GitStore
     def read(data)
       data
     end
-    
+
     def write(data)
       data.to_s
     end
   end
-  
-  class YAMLHandler    
+
+  class YAMLHandler
     def read(data)
       YAML.load(data)
     end

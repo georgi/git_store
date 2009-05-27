@@ -46,33 +46,33 @@ class GitStore
     'blob' => Blob,
     'commit' => Commit,
     'tag' => Tag
-  }     
+  }
 
   CLASS_TYPE = {
     Tree => 'tree',
     Blob => 'blob',
     Commit => 'commit',
     Tag => 'tag'
-  }     
+  }
 
   attr_reader :path, :index, :root, :branch, :lock_file, :head, :packs, :handler, :bare, :objects
 
   # Initialize a store.
   def initialize(path, branch = 'master', bare = false)
-    if bare && !File.exists?("#{path}") or 
+    if bare && !File.exists?("#{path}") or
         !bare && !File.exists?("#{path}/.git")
       raise ArgumentError, "first argument must be a valid Git repository: `#{path}'"
     end
-    
+
     @bare    = bare
     @path    = path.chomp('/')
     @branch  = branch
     @root    = Tree.new(self)
     @packs   = {}
     @objects = {}
-    
+
     init_handler
-    
+
     load_packs("#{git_path}/objects/pack")
     load
   end
@@ -80,7 +80,7 @@ class GitStore
   def init_handler
     @handler = {
       'yml' => YAMLHandler.new
-    }    
+    }
     @handler.default = DefaultHandler.new
   end
 
@@ -115,7 +115,7 @@ class GitStore
 
   # Read an object for the specified path.
   def [](path)
-    root[path] 
+    root[path]
   end
 
   # Write an object to the specified path.
@@ -159,19 +159,19 @@ class GitStore
     head.nil? or head.id != read_head_id
   end
 
-  # Load the current head version from repository. 
+  # Load the current head version from repository.
   def load(from_disk = false)
     if id = read_head_id
       @head = get(id)
       @root = @head.tree
     end
-    
+
     load_from_disk if from_disk
   end
-  
+
   def load_from_disk
     root.each_blob do |path, blob|
-      file = "#{self.path}/#{path}"      
+      file = "#{self.path}/#{path}"
       if File.file?(file)
         blob.data = File.read(file)
       end
@@ -198,7 +198,7 @@ class GitStore
     start_transaction
     result = yield
     commit message
-    
+
     result
   rescue
     rollback
@@ -214,9 +214,9 @@ class GitStore
   def start_transaction
     file = open("#{head_path}.lock", "w")
     file.flock(File::LOCK_EX)
-    
+
     Thread.current['git_store_lock'] = file
-    
+
     load if changed?
   end
 
@@ -228,15 +228,15 @@ class GitStore
     load
     finish_transaction
   end
-  
+
   # Finish the transaction.
   #
   # Release the lock file.
   def finish_transaction
     Thread.current['git_store_lock'].close rescue nil
     Thread.current['git_store_lock'] = nil
-    
-    File.unlink("#{head_path}.lock") rescue nil    
+
+    File.unlink("#{head_path}.lock") rescue nil
   end
 
   # Write the commit object to disk and set the head of the current branch.
@@ -244,7 +244,7 @@ class GitStore
   # Returns the id of the commit object
   def commit(message = '', author = User.from_config, committer = author)
     root.write
-    
+
     commit = Commit.new(self)
     commit.tree = root
     commit.parent << head.id if head
@@ -263,7 +263,7 @@ class GitStore
   def commits(limit = 10, start = head)
     entries = []
     current = start
-    
+
     while current and entries.size < limit
       entries << current
       current = get(current.parent.first)
@@ -276,17 +276,17 @@ class GitStore
     return nil if id.nil?
 
     return objects[id] if objects.has_key?(id)
-    
+
     type, content = get_object(id)
 
     klass = TYPE_CLASS[type] or raise NotImplementedError, "type not supported: #{type}"
-    
+
     objects[id] = klass.new(self, id, content)
   end
 
   def put(object)
     type = CLASS_TYPE[object.class] or raise NotImplementedError, "class not supported: #{object.class}"
-    
+
     id = put_object(type, object.dump)
 
     objects[id] = object
@@ -308,31 +308,31 @@ class GitStore
   # Returns a pair of content and type of the object
   def get_object(id)
     path = object_path(id)
-    
+
     if File.exists?(path)
       buf = open(path, "rb") { |f| f.read }
 
       raise "not a loose object: #{id}" if not legacy_loose_object?(buf)
-      
+
       header, content = Zlib::Inflate.inflate(buf).split(/\0/, 2)
       type, size = header.split(/ /, 2)
-      
+
       raise "bad object: #{id}" if content.length != size.to_i
     else
       content, type = get_object_from_pack(id)
     end
-    
+
     return type, content
   end
-  
+
   # Write a raw object to the repository.
   #
   # Returns the object id.
   def put_object(type, content)
-    data = "#{type} #{content.length}\0#{content}"    
+    data = "#{type} #{content.length}\0#{content}"
     id = sha(data)
     path = object_path(id)
-    
+
     unless File.exists?(path)
       FileUtils.mkpath(File.dirname(path))
       open(path, 'wb') do |f|
@@ -356,13 +356,13 @@ class GitStore
 
   def get_object_from_pack(id)
     pack, offset = @packs[id]
-    
+
     pack.parse_object(offset) if pack
-  end      
+  end
 
   def load_packs(path)
     if File.directory?(path)
-      Dir.open(path) do |dir|        
+      Dir.open(path) do |dir|
         entries = dir.select { |entry| entry =~ /\.pack$/i }
         entries.each do |entry|
           pack = PackStorage.new(File.join(path, entry))
