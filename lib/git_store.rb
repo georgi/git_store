@@ -343,11 +343,16 @@ class GitStore
     id
   end
 
-  def legacy_loose_object?(buf)
-    word = (buf[0] << 8) + buf[1]
-    
-    buf[0] == 0x78 && word % 31 == 0
-  end  
+  if 'String'[0].respond_to?(:ord)
+    def legacy_loose_object?(buf)
+      buf[0] == ?x && ((buf[0].ord << 8) + buf[1].ord % 31 == 0)
+    end
+  else
+    def legacy_loose_object?(buf)
+      word = (buf[0] << 8) + buf[1]
+      buf[0] == 0x78 && word % 31 == 0
+    end
+  end
 
   def get_object_from_pack(id)
     pack, offset = @packs[id]
