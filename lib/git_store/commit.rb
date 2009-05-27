@@ -40,7 +40,7 @@ class GitStore
 
     def diff(commit, path = nil)
       commit = commit.id if Commit === commit
-      Diff.exec(store, "git diff --full-index #{commit} #{id} -- #{path}")
+      Diff.exec(store, "git diff --full-index #{commit} #{id} -- '#{path}'")
     end
 
     def diffs(path = nil)
