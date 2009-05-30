@@ -11,7 +11,7 @@ class GitStore
       @store = store
       @id = id
       @table = {}
-      @mode = "040000"
+      @mode = "40000"
       parse(data) if data
     end
 
