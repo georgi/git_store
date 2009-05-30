@@ -19,7 +19,7 @@ describe GitStore::Commit do
     user = GitStore::User.new("hanni", "hanni@email.de", Time.now)
 
     commit = GitStore::Commit.new(nil)
-    commit.tree = @store.root.id
+    commit.tree = @store.root
     commit.author = user
     commit.committer = user
     commit.message = "This is a message"
