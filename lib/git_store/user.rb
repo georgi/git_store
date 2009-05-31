@@ -3,6 +3,7 @@ class GitStore
     def dump
       "#{ name } <#{email}> #{ time.to_i } #{ time.strftime('%z') }"
     end
+    alias to_s dump
 
     def self.from_config
       name = IO.popen("git config user.name")  { |io| io.gets.chomp }
