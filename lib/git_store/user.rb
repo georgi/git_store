@@ -1,12 +1,5 @@
 class GitStore
-
-  class User
-    attr_accessor :name, :email, :time
-
-    def initialize(name, email, time)
-      @name, @email, @time = name, email, time
-    end
-
+  class User < Struct.new(:name, :email, :time)
     def dump
       "#{ name } <#{email}> #{ time.to_i } #{ time.strftime('%z') }"
     end
