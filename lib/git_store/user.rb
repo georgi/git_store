@@ -5,9 +5,9 @@ class GitStore
     end
     alias to_s dump
 
-    def self.from_config
-      name = IO.popen("git config user.name")  { |io| io.gets.chomp }
-      email = IO.popen("git config user.email") { |io| io.gets.chomp }
+    def inspect
+      "#<GitStore::User name=%p email=%p time=%p>" % [name, email, time]
+    end
 
       new name, email, Time.now
     end
