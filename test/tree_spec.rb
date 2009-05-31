@@ -81,7 +81,7 @@ describe GitStore::Tree do
 
     tree.write
 
-    git_ls_tree(tree.id) ==
+    git_ls_tree(tree.id).should ==
       [["040000", "tree", "24e88cb96c396400000ef706d1ca1ed9a88251aa", "x"]]
 
     git_ls_tree("24e88cb96c396400000ef706d1ca1ed9a88251aa").should ==
