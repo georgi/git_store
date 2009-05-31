@@ -194,10 +194,10 @@ class GitStore
   # Example:
   #   store.transaction { store['a'] = 'b' }
   #
-  def transaction(message = "")
+  def transaction(message = "", author = User.from_config, committer = author)
     start_transaction
     result = yield
-    commit message
+    commit message, author, committer
 
     result
   rescue
