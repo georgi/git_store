@@ -46,7 +46,7 @@ class GitStore
       @table.map { |k, v| "#{ v.mode } #{ k }\0#{ [v.write].pack("H*") }" }.join
     end
 
-    # Write this tree back to the git repository.
+    # Write this treetree back to the git repository.
     #
     # Returns the object id of the tree.
     def write
