@@ -71,29 +71,28 @@ class GitStore
     @packs   = {}
     @objects = {}
 
-    init_handler
-
-    load_packs("#{git_path}/objects/pack")
-    load
-  end
-
-  def init_handler
     @handler = {
       'yml' => YAMLHandler.new
     }
+    
     @handler.default = DefaultHandler.new
+
+    load_packs("#{git_path}/objects/pack")
+    
+    load
   end
 
-  # The path to the current head file.
+  # Returns the path to the current head file.
   def head_path
     "#{git_path}/refs/heads/#{branch}"
   end
 
-  # The path to the object file for given id.
+  # Returns the path to the object file for given id.
   def object_path(id)
     "#{git_path}/objects/#{ id[0...2] }/#{ id[2..39] }"
   end
 
+  # Returns the path to the git data directory.
   def git_path
     if bare
       "#{path}"
@@ -109,6 +108,7 @@ class GitStore
     File.read(head_path).strip if File.exists?(head_path)
   end
 
+  # Return a handler for a given path.
   def handler_for(path)
     handler[ path.split('.').last ]
   end
@@ -128,20 +128,24 @@ class GitStore
     root.each(&block)
   end
 
+  # Returns all paths found in this store.
   def paths
     root.paths
   end
 
+  # Returns all values found in this store.
   def values
     root.values
   end
 
+  # Remove given path from store.
   def delete(path)
     root.delete(path)
   end
 
-  def tree(name)
-    root.tree(name)
+  # Find or create a tree object with given path.
+  def tree(path)
+    root.tree(path)
   end
 
   # Returns the store as a hash tree.
@@ -239,9 +243,9 @@ class GitStore
     File.unlink("#{head_path}.lock") rescue nil
   end
 
-  # Write the commit object to disk and set the head of the current branch.
+  # Write a commit object to disk and set the head of the current branch.
   #
-  # Returns the id of the commit object
+  # Returns the commit object
   def commit(message = '', author = User.from_config, committer = author)
     root.write
 
@@ -260,6 +264,7 @@ class GitStore
     @head = commit
   end
 
+  # Returns a list of commits starting from head commit.
   def commits(limit = 10, start = head)
     entries = []
     current = start
@@ -272,6 +277,9 @@ class GitStore
     entries
   end
 
+  # Get an object by its id.
+  #
+  # Returns a tree, blob, commit or tag object.
   def get(id)
     return nil if id.nil?
 
@@ -284,6 +292,9 @@ class GitStore
     objects[id] = klass.new(self, id, content)
   end
 
+  # Save a git object to the store.
+  #
+  # Returns the object id.
   def put(object)
     type = CLASS_TYPE[object.class] or raise NotImplementedError, "class not supported: #{object.class}"
 
@@ -299,6 +310,7 @@ class GitStore
     Digest::SHA1.hexdigest(str)[0, 40]
   end
 
+  # Calculate the id for a given type and raw data string.
   def id_for(type, content)
     sha "#{type} #{content.length}\0#{content}"
   end
@@ -342,6 +354,8 @@ class GitStore
 
     id
   end
+
+  protected
 
   if 'String'[0].respond_to?(:ord)
     def legacy_loose_object?(buf)
