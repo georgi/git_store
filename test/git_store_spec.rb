@@ -14,6 +14,8 @@ describe GitStore do
     Dir.chdir REPO
     
     `git init`
+    `git config user.name 'User Name'`
+    `git config user.email 'user.name@email.com'`
     @store = GitStore.new(REPO)
   end
   
@@ -243,14 +245,13 @@ describe GitStore do
 
     store.load
 
-    user = GitStore::User.from_config
     id = File.read('.git/refs/tags/0.1')
     tag = store.get(id)
 
     tag.type.should == 'commit'
     tag.object.should == store.head
-    tag.tagger.name.should == user.name
-    tag.tagger.email.should == user.email
+    tag.tagger.name.should == 'User Name'
+    tag.tagger.email.should == 'user.name@email.com'
     tag.message.should =~ /message/    
   end
   
