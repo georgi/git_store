@@ -293,13 +293,13 @@ class GitStore
       obj_offset = offset
       packfile.seek(offset)
 
-      c = packfile.read(1)[0]
+      c = packfile.read(1)[0].ord
       size = c & 0xf
       type = (c >> 4) & 7
       shift = 4
       offset += 1
       while c & 0x80 != 0
-        c = packfile.read(1)[0]
+        c = packfile.read(1)[0].ord
         size |= ((c & 0x7f) << shift)
         shift += 7
         offset += 1
@@ -326,10 +326,10 @@ class GitStore
 
       if type == OBJ_OFS_DELTA
         i = 0
-        c = data[i]
+        c = data[i].ord
         base_offset = c & 0x7f
         while c & 0x80 != 0
-          c = data[i += 1]
+          c = data[i += 1].ord
           base_offset += 1
           base_offset <<= 7
           base_offset |= c & 0x7f
@@ -380,21 +380,21 @@ class GitStore
       dest_size, pos = patch_delta_header_size(delta, pos)
       dest = ""
       while pos < delta.size
-        c = delta[pos]
+        c = delta[pos].ord
         pos += 1
         if c & 0x80 != 0
           pos -= 1
           cp_off = cp_size = 0
-          cp_off = delta[pos += 1] if c & 0x01 != 0
-          cp_off |= delta[pos += 1] << 8 if c & 0x02 != 0
-          cp_off |= delta[pos += 1] << 16 if c & 0x04 != 0
-          cp_off |= delta[pos += 1] << 24 if c & 0x08 != 0
-          cp_size = delta[pos += 1] if c & 0x10 != 0
-          cp_size |= delta[pos += 1] << 8 if c & 0x20 != 0
-          cp_size |= delta[pos += 1] << 16 if c & 0x40 != 0
+          cp_off = delta[pos += 1].ord if c & 0x01 != 0
+          cp_off |= delta[pos += 1].ord << 8 if c & 0x02 != 0
+          cp_off |= delta[pos += 1].ord << 16 if c & 0x04 != 0
+          cp_off |= delta[pos += 1].ord << 24 if c & 0x08 != 0
+          cp_size = delta[pos += 1].ord if c & 0x10 != 0
+          cp_size |= delta[pos += 1].ord << 8 if c & 0x20 != 0
+          cp_size |= delta[pos += 1].ord << 16 if c & 0x40 != 0
           cp_size = 0x10000 if cp_size == 0
           pos += 1
-          dest += base[cp_off,cp_size]
+          dest += base[cp_off, cp_size]
         elsif c != 0
           dest += delta[pos,c]
           pos += c
@@ -414,6 +414,7 @@ class GitStore
         if c == nil
           raise PackFormatError, 'invalid delta header'
         end
+        c = c.ord
         pos += 1
         size |= (c & 0x7f) << shift
         shift += 7
