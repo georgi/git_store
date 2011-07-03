@@ -79,7 +79,7 @@ class GitStore
         @table[name] = value
       else
         data = handler_for(name).write(value)
-        if data != @table[name].data
+        if @table[name].nil? or data != @table[name].data
           @modified = true
           @table[name] = Blob.new(store, nil, data)
         end
