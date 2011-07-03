@@ -74,12 +74,15 @@ class GitStore
 
     # Write entry with specified name.
     def put(name, value)
-      @modified = true
-
       if value.is_a?(Tree)
+        @modified = true
         @table[name] = value
       else
-        @table[name] = Blob.new(store, nil, handler_for(name).write(value))
+        data = handler_for(name).write(value)
+        if data != @table[name].data
+          @modified = true
+          @table[name] = Blob.new(store, nil, data)
+        end
       end
 
       value
