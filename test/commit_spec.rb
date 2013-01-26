@@ -32,7 +32,7 @@ This is a message"
   end
 
   it "should be readable by git binary" do
-    time = Time.local(2009, 4, 20)
+    time = Time.utc(2009, 4, 20)
     author = GitStore::User.new("hans", "hans@email.de", time)
     
     store['a'] = "Yay"
@@ -41,7 +41,7 @@ This is a message"
     IO.popen("git log") do |io|
       io.gets.should == "commit #{commit.id}\n"
       io.gets.should == "Author: hans <hans@email.de>\n"
-      io.gets.should == "Date:   Mon Apr 20 00:00:00 2009 #{Time.now.strftime('%z')}\n"
+      io.gets.should == "Date:   Mon Apr 20 00:00:00 2009 +0000\n"
       io.gets.should == "\n"
       io.gets.should == "    Commit Message\n"
     end

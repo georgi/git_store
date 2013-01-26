@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
   s.name = 'git_store'
-  s.version = '0.3.2'
+  s.version = '0.3.3'
   s.summary = 'a simple data store based on git'
   s.author = 'Matthias Georgi'
   s.email = 'matti.georgi@gmail.com'
-  s.homepage = 'http://ww.matthias-georgi.de/git_store'
+  s.homepage = 'http://georgi.github.com/git_store'
   s.description = <<END
 GitStore implements a versioned data store based on the revision
 management system Git. You can store object hierarchies as nested
