@@ -128,20 +128,10 @@ Shinmun uses its own handler for files with `md` extension:
 
 Download or fork the project on its [Github page][5]
 
-### Mailing List
-
-Please join the [GitStore Google Group][3] for further discussion.
-
-### Related Work
-
-John Wiegley already has done [something similar for Python][4].
-
 
 
 [1]: http://git.or.cz/
 [2]: http://github.com/mojombo/grit
-[3]: http://groups.google.com/group/gitstore
-[4]: http://www.newartisans.com/blog_files/git.versioned.data.store.php
 [5]: http://github.com/georgi/git_store
 [6]: http://www.kernel.org/pub/software/scm/git/docs/git-gui.html
 [7]: http://www.matthias-georgi.de/shinmun
