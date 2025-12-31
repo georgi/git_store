@@ -3,3 +3,6 @@ doc/*
 pkg/*
 test/repo
 html/*
+vendor/
+.bundle/
+Gemfile.lock

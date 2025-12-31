@@ -1,16 +1,4 @@
-
-# This fix ensures sorted yaml maps.
-class Hash
-	def to_yaml( opts = {} )
-		YAML::quick_emit( object_id, opts ) do |out|
-      out.map( taguri, to_yaml_style ) do |map|
-        sort_by { |k, v| k.to_s }.each do |k, v|
-          map.add( k, v )
-        end
-      end
-    end
-	end
-end
+require 'date'
 
 class GitStore
 
@@ -26,7 +14,7 @@ class GitStore
 
   class YAMLHandler
     def read(data)
-      YAML.load(data)
+      YAML.safe_load(data, permitted_classes: [Symbol, Date, Time])
     end
 
     def write(data)

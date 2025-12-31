@@ -1,4 +1,5 @@
 require "#{File.dirname(__FILE__)}/../lib/git_store"
+require "#{File.dirname(__FILE__)}/spec_helper"
 require 'pp'
 
 describe GitStore::User do

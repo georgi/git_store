@@ -19,9 +19,9 @@ class GitStore
 
       if $?.exitstatus == 0
         return value unless value.empty?
-        raise RuntimError, "#{key} is empty"
+        raise RuntimeError, "#{key} is empty"
       else
-        raise RuntimError, "No #{key} found in git config"
+        raise RuntimeError, "No #{key} found in git config"
       end
     end
 
