@@ -13,7 +13,6 @@ repository. GitStore checks out the repository into a in-memory
 representation, which can be modified and finally committed.
 END
   s.require_path = 'lib'
-  s.has_rdoc = true
   s.extra_rdoc_files = ['README.md']  
   s.files = %w{
 .gitignore
@@ -34,7 +33,10 @@ test/bare_store_spec.rb
 test/benchmark.rb
 test/commit_spec.rb
 test/git_store_spec.rb
+test/helper.rb
+test/spec_helper.rb
 test/tree_spec.rb
+test/user_spec.rb
 }
 end
 

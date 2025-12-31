@@ -59,8 +59,8 @@ class GitStore
 
   # Initialize a store.
   def initialize(path, branch = 'master', bare = false)
-    if bare && !File.exists?("#{path}") or
-        !bare && !File.exists?("#{path}/.git")
+    if bare && !File.exist?("#{path}") or
+        !bare && !File.exist?("#{path}/.git")
       raise ArgumentError, "first argument must be a valid Git repository: `#{path}'"
     end
 
@@ -105,7 +105,7 @@ class GitStore
   #
   # Returns the object id of the last commit.
   def read_head_id
-    File.read(head_path).strip if File.exists?(head_path)
+    File.read(head_path).strip if File.exist?(head_path)
   end
 
   # Return a handler for a given path.
@@ -321,7 +321,7 @@ class GitStore
   def get_object(id)
     path = object_path(id)
 
-    if File.exists?(path)
+    if File.exist?(path)
       buf = open(path, "rb") { |f| f.read }
 
       raise "not a loose object: #{id}" if not legacy_loose_object?(buf)
@@ -345,7 +345,7 @@ class GitStore
     id = sha(data)
     path = object_path(id)
 
-    unless File.exists?(path)
+    unless File.exist?(path)
       FileUtils.mkpath(File.dirname(path))
       open(path, 'wb') do |f|
         f.write Zlib::Deflate.deflate(data)

@@ -1,4 +1,5 @@
 require "#{File.dirname(__FILE__)}/../lib/git_store"
+require "#{File.dirname(__FILE__)}/spec_helper"
 require "#{File.dirname(__FILE__)}/helper"
 require 'pp'
 
@@ -14,6 +15,8 @@ describe GitStore do
     Dir.chdir REPO
 
     `git init --bare`
+    `git config user.name 'User Name'`
+    `git config user.email 'user.name@email.com'`
     @store = GitStore.new(REPO, 'master', true)
   end
 

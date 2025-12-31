@@ -1,4 +1,5 @@
 require "#{File.dirname(__FILE__)}/../lib/git_store"
+require "#{File.dirname(__FILE__)}/spec_helper"
 require 'pp'
 
 describe GitStore::Commit do
@@ -12,6 +13,8 @@ describe GitStore::Commit do
     Dir.mkdir REPO
     Dir.chdir REPO
     `git init`
+    `git config user.name 'User Name'`
+    `git config user.email 'user.name@email.com'`
     @store = GitStore.new(REPO)
   end
 
@@ -69,13 +72,13 @@ Another Line.
     diff = b.diff(a)
 
     diff[0].a_path.should == 'x'
-    diff[0].deleted_file.should be_true
+    diff[0].deleted_file.should be true
 
     diff[1].a_path.should == 'y'
     diff[1].diff.should == "--- a/y\n+++ b/y\n@@ -1,4 +1,4 @@\n \n First Line.\n-Second Line.\n Last Line.\n+Another Line."
 
     diff[2].a_path.should == 'z'
-    diff[2].new_file.should be_true
+    diff[2].new_file.should be true
   end
   
 end
