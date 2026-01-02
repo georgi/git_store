@@ -1,0 +1,52 @@
+<%= form_with model: page, url: page.persisted? ? page_path(page) : pages_path, class: 'space-y-4' do |form| %>
+  <% if page.errors.any? %>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      <h2 class="font-bold"><%= pluralize(page.errors.count, 'error') %> prevented this page from being saved:</h2>
+      <ul class="list-disc list-inside mt-2">
+        <% page.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :slug, class: 'block text-sm font-medium text-gray-700' %>
+    <%= form.text_field :slug, 
+        class: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+        placeholder: 'page-slug',
+        disabled: page.persisted? %>
+    <p class="mt-1 text-sm text-gray-500">URL-friendly identifier (letters, numbers, dashes)</p>
+  </div>
+
+  <div>
+    <%= form.label :title, class: 'block text-sm font-medium text-gray-700' %>
+    <%= form.text_field :title, 
+        class: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+        placeholder: 'Page Title' %>
+  </div>
+
+  <div>
+    <%= form.label :content, class: 'block text-sm font-medium text-gray-700' %>
+    <%= form.text_area :content, 
+        rows: 15,
+        class: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono',
+        placeholder: 'Write your content in Markdown...' %>
+    <p class="mt-1 text-sm text-gray-500">Supports Markdown formatting and [[Wiki Links]]</p>
+  </div>
+
+  <div>
+    <%= label_tag :commit_message, 'Commit Message', class: 'block text-sm font-medium text-gray-700' %>
+    <%= text_field_tag :commit_message, nil,
+        class: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+        placeholder: page.persisted? ? 'Describe your changes...' : 'Initial page creation' %>
+    <p class="mt-1 text-sm text-gray-500">Describe what you changed (for version history)</p>
+  </div>
+
+  <div class="flex gap-2">
+    <%= form.submit page.persisted? ? 'Update Page' : 'Create Page',
+        class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
+    <%= link_to 'Cancel', page.persisted? ? page_path(page) : pages_path,
+        class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded' %>
+  </div>
+<% end %>

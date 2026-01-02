@@ -1,0 +1,107 @@
+<div class="container mx-auto px-4 py-8">
+  <nav class="text-sm text-gray-500 mb-4">
+    <%= link_to 'Records', records_path %> / 
+    <%= @record.record_type %> / 
+    <%= link_to @record.record_id, record_path(@record.composite_id) %> /
+    Existence Proof
+  </nav>
+
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="bg-green-50 border-b border-green-200 px-6 py-4">
+      <h1 class="text-2xl font-bold text-green-800">
+        <span class="mr-2">🔒</span> Existence Proof
+      </h1>
+      <p class="text-green-600 mt-1">Cryptographic proof that this record exists and hasn't been tampered with</p>
+    </div>
+
+    <div class="p-6">
+      <div class="bg-gray-50 rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Proof Details</h2>
+        
+        <dl class="space-y-4">
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Record Type</dt>
+            <dd class="col-span-2 font-mono text-sm"><%= @proof[:record_type] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Record ID</dt>
+            <dd class="col-span-2 font-mono text-sm"><%= @proof[:record_id] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Commit ID</dt>
+            <dd class="col-span-2 font-mono text-sm break-all"><%= @proof[:commit_id] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Timestamp</dt>
+            <dd class="col-span-2 font-mono text-sm"><%= @proof[:timestamp] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Author</dt>
+            <dd class="col-span-2"><%= @proof[:author] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Data Checksum (SHA-256)</dt>
+            <dd class="col-span-2 font-mono text-xs break-all"><%= @proof[:checksum] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Current HEAD</dt>
+            <dd class="col-span-2 font-mono text-xs break-all"><%= @proof[:current_head] %></dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Integrity Status</dt>
+            <dd class="col-span-2">
+              <% if @proof[:verified] %>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  ✓ Verified - Data integrity confirmed
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                  ✗ Failed - Data may have been tampered with
+                </span>
+              <% end %>
+            </dd>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <dt class="text-sm font-medium text-gray-500">Proof Generated At</dt>
+            <dd class="col-span-2 font-mono text-sm"><%= @proof[:generated_at] %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-semibold mb-4">What This Proves</h3>
+        <ul class="space-y-2 text-sm text-gray-600">
+          <li class="flex items-start">
+            <span class="text-green-500 mr-2">✓</span>
+            The record existed at the timestamp shown
+          </li>
+          <li class="flex items-start">
+            <span class="text-green-500 mr-2">✓</span>
+            The data has not been modified since that time (verified via SHA-256 checksum)
+          </li>
+          <li class="flex items-start">
+            <span class="text-green-500 mr-2">✓</span>
+            The change was made by the author shown
+          </li>
+          <li class="flex items-start">
+            <span class="text-green-500 mr-2">✓</span>
+            The commit ID can be independently verified using Git
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t px-6 py-4 bg-gray-50 flex justify-between">
+      <%= link_to '← Back to Record', record_path(@record.composite_id), class: 'text-blue-600 hover:text-blue-800' %>
+      <%= link_to 'Download Proof (JSON)', proof_record_path(@record.composite_id, format: :json), class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded' %>
+    </div>
+  </div>
+</div>

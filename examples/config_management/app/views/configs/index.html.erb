@@ -1,0 +1,53 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Configuration Management</h1>
+    <div class="flex gap-2">
+      <%= link_to 'Environments', environments_configs_path, class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded' %>
+      <%= link_to 'New Config', new_config_path, class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+    </div>
+  </div>
+
+  <div class="mb-6">
+    <%= form_with url: configs_path, method: :get, class: 'flex gap-2' do %>
+      <%= text_field_tag :q, params[:q], placeholder: 'Search configurations...', class: 'flex-1 px-4 py-2 border rounded' %>
+      <%= submit_tag 'Search', class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
+    <% end %>
+  </div>
+
+  <% if @configs.empty? %>
+    <div class="text-center py-12 text-gray-500">
+      <p>No configurations yet. <%= link_to 'Create the first one', new_config_path, class: 'text-blue-500 hover:underline' %></p>
+    </div>
+  <% else %>
+    <div class="space-y-6">
+      <% @grouped_configs.each do |directory, configs| %>
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+          <div class="bg-gray-100 px-4 py-2 border-b">
+            <h2 class="font-semibold text-gray-700">
+              <span class="text-gray-400">📁</span> <%= directory %>
+            </h2>
+          </div>
+          <ul class="divide-y divide-gray-200">
+            <% configs.each do |config| %>
+              <li class="px-4 py-3 hover:bg-gray-50 flex justify-between items-center">
+                <div>
+                  <span class="font-mono text-sm">
+                    <%= link_to File.basename(config.path), config_path(config.path), class: 'text-blue-600 hover:text-blue-800' %>
+                  </span>
+                  <span class="ml-2 text-xs text-gray-400">
+                    <%= config.format.upcase %>
+                  </span>
+                </div>
+                <div class="flex gap-2 text-sm">
+                  <%= link_to 'View', config_path(config.path), class: 'text-blue-600 hover:text-blue-800' %>
+                  <%= link_to 'Edit', edit_config_path(config.path), class: 'text-green-600 hover:text-green-800' %>
+                  <%= link_to 'History', history_config_path(config.path), class: 'text-gray-600 hover:text-gray-800' %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

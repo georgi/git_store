@@ -1,0 +1,71 @@
+<div class="container mx-auto px-4 py-8">
+  <nav class="text-sm text-gray-500 mb-4">
+    <%= link_to 'Records', records_path %> / 
+    <%= @record.record_type %> / 
+    <%= @record.record_id %>
+  </nav>
+
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="border-b px-6 py-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
+            <%= @record.record_type %>
+          </span>
+          <h1 class="text-2xl font-bold font-mono"><%= @record.record_id %></h1>
+        </div>
+        <div class="flex gap-2">
+          <%= link_to 'Edit', edit_record_path(@record.composite_id), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+          <%= link_to 'History', history_record_path(@record.composite_id), class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded' %>
+          <%= link_to 'Proof', proof_record_path(@record.composite_id), class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded' %>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="grid grid-cols-2 gap-6 mb-6">
+        <div>
+          <h3 class="text-sm font-medium text-gray-500">Created</h3>
+          <p class="mt-1"><%= @record.created_at&.strftime('%Y-%m-%d %H:%M:%S %Z') || 'Unknown' %></p>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-500">Last Modified</h3>
+          <p class="mt-1"><%= @record.updated_at&.strftime('%Y-%m-%d %H:%M:%S %Z') || 'Unknown' %></p>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-500">Last Author</h3>
+          <p class="mt-1"><%= @record.author_name %> (<%= @record.author_email %>)</p>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-500">Integrity</h3>
+          <p class="mt-1">
+            <% if @record.verify_integrity! %>
+              <span class="text-green-600 font-semibold">✓ Verified</span>
+            <% else %>
+              <span class="text-red-600 font-semibold">✗ Integrity Check Failed</span>
+            <% end %>
+          </p>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Checksum (SHA-256)</h3>
+        <code class="text-xs bg-gray-100 p-2 rounded block font-mono break-all">
+          <%= @record.checksum %>
+        </code>
+      </div>
+
+      <div>
+        <h3 class="text-lg font-semibold mb-4">Record Data</h3>
+        <pre class="bg-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono"><%= @record.data.to_yaml %></pre>
+      </div>
+    </div>
+
+    <div class="border-t px-6 py-4 bg-gray-50">
+      <div class="flex gap-4 text-sm">
+        <%= link_to 'View as JSON', record_path(@record.composite_id, format: :json), class: 'text-blue-600 hover:text-blue-800' %>
+        <%= link_to 'Point-in-Time Query', state_at_record_path(@record.composite_id, timestamp: 1.day.ago.iso8601), class: 'text-blue-600 hover:text-blue-800' %>
+      </div>
+    </div>
+  </div>
+</div>

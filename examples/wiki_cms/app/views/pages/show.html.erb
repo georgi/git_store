@@ -1,0 +1,41 @@
+<div class="container mx-auto px-4 py-8">
+  <nav class="text-sm text-gray-500 mb-4">
+    <%= page_breadcrumb(@page) %>
+  </nav>
+
+  <article class="bg-white shadow rounded-lg p-6">
+    <header class="mb-6 pb-4 border-b">
+      <h1 class="text-3xl font-bold mb-2"><%= @page.title %></h1>
+      <div class="flex items-center gap-4 text-sm text-gray-500">
+        <% if @page.updated_at %>
+          <span>Last updated: <%= format_time(@page.updated_at) %></span>
+        <% end %>
+        <% if @page.author_name %>
+          <span>by <%= @page.author_name %></span>
+        <% end %>
+      </div>
+      <% if @page.tags.present? %>
+        <div class="mt-2">
+          <% @page.tags.each do |tag| %>
+            <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
+              <%= tag %>
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </header>
+
+    <div class="prose max-w-none">
+      <%= render_markdown(@page.content) %>
+    </div>
+  </article>
+
+  <div class="mt-6 flex gap-2">
+    <%= link_to 'Edit', edit_page_path(@page), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+    <%= link_to 'History', history_page_path(@page), class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded' %>
+    <%= link_to 'Raw', raw_page_path(@page), class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded' %>
+    <%= button_to 'Delete', page_path(@page), method: :delete, 
+        class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded',
+        data: { turbo_confirm: 'Are you sure you want to delete this page?' } %>
+  </div>
+</div>
