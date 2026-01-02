@@ -1,13 +1,13 @@
 <div class="container mx-auto px-4 py-8">
   <nav class="text-sm text-gray-500 mb-4">
-    <%= link_to 'Configs', configs_path %> / <%= @config.path %>
+    <%= link_to 'Configs', configs_path %> / <%= h @config.path %>
   </nav>
 
   <div class="bg-white shadow rounded-lg">
     <div class="border-b px-6 py-4 flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold font-mono"><%= @config.path %></h1>
-        <span class="text-sm text-gray-500">Format: <%= @config.format.upcase %></span>
+        <h1 class="text-2xl font-bold font-mono"><%= h @config.path %></h1>
+        <span class="text-sm text-gray-500">Format: <%= h @config.format.upcase %></span>
       </div>
       <div class="flex gap-2">
         <%= link_to 'Edit', edit_config_path(@config.path), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
@@ -17,7 +17,7 @@
 
     <div class="p-6">
       <h2 class="text-lg font-semibold mb-4">Current Value</h2>
-      <pre class="bg-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono"><%= @config.value.to_yaml %></pre>
+      <pre class="bg-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono"><%= h @config.value.to_yaml %></pre>
     </div>
 
     <div class="border-t px-6 py-4 bg-gray-50">

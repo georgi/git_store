@@ -4,16 +4,19 @@
 module PagesHelper
   # Render markdown content to HTML
   #
+  # NOTE: This is a simplified markdown renderer for demonstration purposes.
+  # In production, use a proper markdown library like 'redcarpet' or 'kramdown'
+  # which handles security concerns properly.
+  #
   # @param content [String] Markdown content
   # @return [String] HTML content
   def render_markdown(content)
-    # Using a simple markdown implementation
-    # In production, use a gem like 'redcarpet' or 'kramdown'
     return '' if content.blank?
 
-    html = content.dup
+    # First, HTML-escape all content to prevent XSS
+    html = ERB::Util.html_escape(content)
 
-    # Headers
+    # Headers - only allow text content (already escaped)
     html.gsub!(/^### (.+)$/, '<h3>\1</h3>')
     html.gsub!(/^## (.+)$/, '<h2>\1</h2>')
     html.gsub!(/^# (.+)$/, '<h1>\1</h1>')
@@ -22,26 +25,31 @@ module PagesHelper
     html.gsub!(/\*\*(.+?)\*\*/, '<strong>\1</strong>')
     html.gsub!(/\*(.+?)\*/, '<em>\1</em>')
 
-    # Code blocks
+    # Code blocks (content already escaped)
     html.gsub!(/```(\w*)\n(.*?)```/m) do
       lang = ::Regexp.last_match(1)
       code = ::Regexp.last_match(2)
-      "<pre><code class=\"language-#{lang}\">#{ERB::Util.html_escape(code)}</code></pre>"
+      "<pre><code class=\"language-#{lang}\">#{code}</code></pre>"
     end
 
-    # Inline code
+    # Inline code (content already escaped)
     html.gsub!(/`([^`]+)`/, '<code>\1</code>')
 
-    # Links
-    html.gsub!(/\[([^\]]+)\]\(([^)]+)\)/, '<a href="\2">\1</a>')
+    # Links - URL is already escaped, validate it's not javascript:
+    html.gsub!(/\[([^\]]+)\]\(([^)]+)\)/) do
+      text = ::Regexp.last_match(1)
+      url = ::Regexp.last_match(2)
+      # Reject potentially dangerous URLs (javascript:, data:, etc.)
+      safe_url = url.match?(/\A(https?:|\/|#)/) ? url : '#'
+      "<a href=\"#{safe_url}\">#{text}</a>"
+    end
 
-    # Wiki-style links [[Page Name]]
+    # Wiki-style links [[Page Name]] - generate safe internal links
     html.gsub!(/\[\[([^\]]+)\]\]/) do
       page_name = ::Regexp.last_match(1)
-      slug = page_name.downcase.gsub(/\s+/, '-')
-      escaped_name = ERB::Util.html_escape(page_name)
-      escaped_slug = ERB::Util.html_escape(slug)
-      "<a href=\"/pages/#{escaped_slug}\" class=\"wiki-link\">#{escaped_name}</a>"
+      # Sanitize slug to only allow alphanumeric, dashes, underscores
+      slug = page_name.downcase.gsub(/[^a-z0-9\-_]/, '-').gsub(/-+/, '-')
+      "<a href=\"/pages/#{slug}\" class=\"wiki-link\">#{page_name}</a>"
     end
 
     # Paragraphs

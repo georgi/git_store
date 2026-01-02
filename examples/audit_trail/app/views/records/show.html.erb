@@ -1,8 +1,8 @@
 <div class="container mx-auto px-4 py-8">
   <nav class="text-sm text-gray-500 mb-4">
     <%= link_to 'Records', records_path %> / 
-    <%= @record.record_type %> / 
-    <%= @record.record_id %>
+    <%= h @record.record_type %> / 
+    <%= h @record.record_id %>
   </nav>
 
   <div class="bg-white shadow rounded-lg overflow-hidden">
@@ -10,9 +10,9 @@
       <div class="flex justify-between items-start">
         <div>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
-            <%= @record.record_type %>
+            <%= h @record.record_type %>
           </span>
-          <h1 class="text-2xl font-bold font-mono"><%= @record.record_id %></h1>
+          <h1 class="text-2xl font-bold font-mono"><%= h @record.record_id %></h1>
         </div>
         <div class="flex gap-2">
           <%= link_to 'Edit', edit_record_path(@record.composite_id), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
@@ -34,7 +34,7 @@
         </div>
         <div>
           <h3 class="text-sm font-medium text-gray-500">Last Author</h3>
-          <p class="mt-1"><%= @record.author_name %> (<%= @record.author_email %>)</p>
+          <p class="mt-1"><%= h @record.author_name %> (<%= h @record.author_email %>)</p>
         </div>
         <div>
           <h3 class="text-sm font-medium text-gray-500">Integrity</h3>
@@ -51,13 +51,13 @@
       <div class="mb-6">
         <h3 class="text-sm font-medium text-gray-500 mb-2">Checksum (SHA-256)</h3>
         <code class="text-xs bg-gray-100 p-2 rounded block font-mono break-all">
-          <%= @record.checksum %>
+          <%= h @record.checksum %>
         </code>
       </div>
 
       <div>
         <h3 class="text-lg font-semibold mb-4">Record Data</h3>
-        <pre class="bg-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono"><%= @record.data.to_yaml %></pre>
+        <pre class="bg-gray-100 p-4 rounded-lg overflow-auto text-sm font-mono"><%= h @record.data.to_yaml %></pre>
       </div>
     </div>
 

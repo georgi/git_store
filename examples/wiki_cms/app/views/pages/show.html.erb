@@ -5,20 +5,20 @@
 
   <article class="bg-white shadow rounded-lg p-6">
     <header class="mb-6 pb-4 border-b">
-      <h1 class="text-3xl font-bold mb-2"><%= @page.title %></h1>
+      <h1 class="text-3xl font-bold mb-2"><%= h @page.title %></h1>
       <div class="flex items-center gap-4 text-sm text-gray-500">
         <% if @page.updated_at %>
           <span>Last updated: <%= format_time(@page.updated_at) %></span>
         <% end %>
         <% if @page.author_name %>
-          <span>by <%= @page.author_name %></span>
+          <span>by <%= h @page.author_name %></span>
         <% end %>
       </div>
       <% if @page.tags.present? %>
         <div class="mt-2">
           <% @page.tags.each do |tag| %>
             <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
-              <%= tag %>
+              <%= h tag %>
             </span>
           <% end %>
         </div>
