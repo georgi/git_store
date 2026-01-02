@@ -1,0 +1,50 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Wiki Pages</h1>
+    <%= link_to 'New Page', new_page_path, class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+  </div>
+
+  <div class="mb-6">
+    <%= form_with url: search_pages_path, method: :get, class: 'flex gap-2' do %>
+      <%= text_field_tag :q, params[:q], placeholder: 'Search pages...', class: 'flex-1 px-4 py-2 border rounded' %>
+      <%= submit_tag 'Search', class: 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
+    <% end %>
+  </div>
+
+  <% if @query.present? %>
+    <p class="text-gray-600 mb-4">
+      Found <%= pluralize(@pages.size, 'result') %> for "<%= @query %>"
+    </p>
+  <% end %>
+
+  <div class="grid gap-4">
+    <% if @pages.empty? %>
+      <div class="text-center py-12 text-gray-500">
+        <p>No pages yet. <%= link_to 'Create the first page', new_page_path, class: 'text-blue-500 hover:underline' %></p>
+      </div>
+    <% else %>
+      <% @pages.each do |page| %>
+        <div class="bg-white shadow rounded-lg p-4 hover:shadow-md transition-shadow">
+          <h2 class="text-xl font-semibold mb-2">
+            <%= link_to page.title, page_path(page), class: 'text-blue-600 hover:text-blue-800' %>
+          </h2>
+          <p class="text-gray-600 text-sm">
+            <% if @query.present? %>
+              <%= highlight_search(truncate(page.content, length: 200), @query) %>
+            <% else %>
+              <%= truncate(page.content, length: 200) %>
+            <% end %>
+          </p>
+          <div class="mt-2 text-xs text-gray-400">
+            <% if page.updated_at %>
+              Updated <%= format_time(page.updated_at) %>
+            <% end %>
+            <% if page.author_name %>
+              by <%= page.author_name %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

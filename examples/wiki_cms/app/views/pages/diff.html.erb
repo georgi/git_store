@@ -1,0 +1,73 @@
+<div class="container mx-auto px-4 py-8">
+  <nav class="text-sm text-gray-500 mb-4">
+    <%= link_to 'Wiki', pages_path %> / 
+    <%= link_to @page.title, page_path(@page) %> / 
+    <%= link_to 'History', history_page_path(@page) %> /
+    Diff
+  </nav>
+
+  <h1 class="text-3xl font-bold mb-6">Changes: <%= @page.title %></h1>
+
+  <div class="grid grid-cols-2 gap-6 mb-6">
+    <div class="bg-red-50 rounded-lg p-4">
+      <h2 class="text-lg font-semibold text-red-800 mb-2">
+        From: <%= short_sha(@from_commit) %>
+      </h2>
+      <% if @from_version %>
+        <p class="text-sm text-red-600">
+          <%= format_time(@from_version.updated_at) %>
+          by <%= @from_version.author_name %>
+        </p>
+      <% end %>
+    </div>
+    <div class="bg-green-50 rounded-lg p-4">
+      <h2 class="text-lg font-semibold text-green-800 mb-2">
+        To: <%= short_sha(@to_commit) %>
+      </h2>
+      <% if @to_version %>
+        <p class="text-sm text-green-600">
+          <%= format_time(@to_version.updated_at) %>
+          by <%= @to_version.author_name %>
+        </p>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="bg-white shadow rounded-lg p-6">
+    <h3 class="text-lg font-semibold mb-4">Diff</h3>
+    <%= format_diff(@diff) %>
+  </div>
+
+  <div class="mt-6 flex gap-4">
+    <%= link_to 'Back to History', history_page_path(@page), class: 'text-blue-600 hover:text-blue-900' %>
+    <%= button_to "Rollback to #{short_sha(@from_commit)}", 
+        rollback_page_path(@page, commit_id: @from_commit),
+        method: :post,
+        class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded',
+        data: { turbo_confirm: 'Are you sure you want to rollback to this version?' } %>
+  </div>
+</div>
+
+<style>
+  .diff {
+    font-family: monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  .diff-add {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  .diff-remove {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+  .diff-info {
+    background-color: #e0f2fe;
+    color: #0369a1;
+  }
+  .diff-context {
+    color: #6b7280;
+  }
+</style>

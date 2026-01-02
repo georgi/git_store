@@ -1,0 +1,67 @@
+<div class="container mx-auto px-4 py-8">
+  <nav class="text-sm text-gray-500 mb-4">
+    <%= link_to 'Wiki', pages_path %> / 
+    <%= link_to @page.title, page_path(@page) %> / 
+    History
+  </nav>
+
+  <h1 class="text-3xl font-bold mb-6">History: <%= @page.title %></h1>
+
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commit</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <% @commits.each_with_index do |commit, index| %>
+          <tr class="<%= index == 0 ? 'bg-green-50' : '' %>">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <code class="text-sm font-mono text-gray-900">
+                <%= short_sha(commit.id) %>
+              </code>
+              <% if index == 0 %>
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Current
+                </span>
+              <% end %>
+            </td>
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-900"><%= truncate(commit.message, length: 60) %></div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900"><%= commit.author&.name %></div>
+              <div class="text-sm text-gray-500"><%= commit.author&.email %></div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <%= format_time(commit.author&.time) %>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              <div class="flex gap-2">
+                <% if index > 0 %>
+                  <%= link_to 'View', page_path(@page, version: commit.id), 
+                      class: 'text-blue-600 hover:text-blue-900' %>
+                  <%= link_to 'Diff', diff_page_path(@page, from: commit.id, to: @commits[index - 1].id), 
+                      class: 'text-blue-600 hover:text-blue-900' %>
+                  <%= button_to 'Rollback', rollback_page_path(@page, commit_id: commit.id), 
+                      method: :post,
+                      class: 'text-red-600 hover:text-red-900',
+                      data: { turbo_confirm: "Are you sure you want to rollback to version #{short_sha(commit.id)}?" } %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-6">
+    <%= link_to 'Back to Page', page_path(@page), class: 'text-blue-600 hover:text-blue-900' %>
+  </div>
+</div>
