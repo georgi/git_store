@@ -3,6 +3,10 @@
 # Controller for wiki pages with full CRUD operations and version history.
 # Provides a complete wiki experience with version control features.
 #
+# NOTE: This controller expects to inherit from ApplicationController which should
+# have CSRF protection enabled (protect_from_forgery with: :exception).
+# See Rails security guide: https://guides.rubyonrails.org/security.html
+#
 # @example Routes
 #   GET    /pages          # List all pages
 #   GET    /pages/new      # New page form

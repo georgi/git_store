@@ -11,9 +11,10 @@ Rails.application.config.to_prepare do
   unless File.exist?(config_repo_path.join('.git'))
     FileUtils.mkdir_p(config_repo_path)
     Dir.chdir(config_repo_path) do
-      system('git init')
-      system('git config user.name "Config System"')
-      system('git config user.email "config@example.com"')
+      # Use array form to avoid shell injection
+      system('git', 'init')
+      system('git', 'config', 'user.name', 'Config System')
+      system('git', 'config', 'user.email', 'config@example.com')
     end
   end
 

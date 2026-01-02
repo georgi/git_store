@@ -182,8 +182,25 @@ end
 - Large binary files
 - Real-time data
 
+## 🔒 Security Notes
+
+When integrating these examples into your Rails application:
+
+1. **CSRF Protection** - Ensure your `ApplicationController` has CSRF protection enabled:
+   ```ruby
+   class ApplicationController < ActionController::Base
+     protect_from_forgery with: :exception
+   end
+   ```
+
+2. **Authentication** - Add proper authentication before allowing data modifications
+3. **Authorization** - Implement role-based access control for sensitive operations
+4. **Input Validation** - The examples include basic validation; add more as needed
+5. **Repository Access** - Restrict file system access to the Git repositories
+
 ## 📖 Further Reading
 
 - [GitStore README](../README.md)
 - [GitStore Documentation](../docs/)
 - [Shinmun Blog Engine](http://www.matthias-georgi.de/shinmun) - Inspiration for GitStore
+- [Rails Security Guide](https://guides.rubyonrails.org/security.html)

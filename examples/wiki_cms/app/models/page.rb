@@ -178,7 +178,8 @@ class Page
       if commit_affects_page?(current)
         commits << current
       end
-      current = store.get(current.parent.first) if current.parent.any?
+      parent_id = current.parent.first if current.parent.any?
+      current = parent_id ? store.get(parent_id) : nil
     end
 
     commits

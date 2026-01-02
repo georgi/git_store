@@ -406,6 +406,13 @@ class AuditedRecord
   def compute_diff(old_data, new_data)
     changes = []
 
+    # Handle nil inputs
+    old_data = old_data || {}
+    new_data = new_data || {}
+
+    # Ensure both are hashes before calling .keys
+    return changes unless old_data.respond_to?(:keys) && new_data.respond_to?(:keys)
+
     all_keys = (old_data.keys + new_data.keys).uniq
     all_keys.each do |key|
       old_val = old_data[key]

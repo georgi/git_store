@@ -3,6 +3,10 @@
 # Controller for managing versioned application configurations.
 # Provides CRUD operations with full version history and rollback support.
 #
+# NOTE: This controller expects to inherit from ApplicationController which should
+# have CSRF protection enabled (protect_from_forgery with: :exception).
+# See Rails security guide: https://guides.rubyonrails.org/security.html
+#
 class ConfigsController < ApplicationController
   before_action :set_config, only: [:show, :edit, :update, :destroy, :history, :rollback, :diff]
   before_action :refresh_store
@@ -141,7 +145,7 @@ class ConfigsController < ApplicationController
     when 'json'
       JSON.parse(text)
     when 'yml', 'yaml'
-      YAML.safe_load(text, permitted_classes: [Symbol, Date, Time])
+      YAML.safe_load(text, permitted_classes: [Date, Time])
     else
       text
     end

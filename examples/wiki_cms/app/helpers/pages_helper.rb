@@ -39,7 +39,9 @@ module PagesHelper
     html.gsub!(/\[\[([^\]]+)\]\]/) do
       page_name = ::Regexp.last_match(1)
       slug = page_name.downcase.gsub(/\s+/, '-')
-      "<a href=\"/pages/#{slug}\" class=\"wiki-link\">#{page_name}</a>"
+      escaped_name = ERB::Util.html_escape(page_name)
+      escaped_slug = ERB::Util.html_escape(slug)
+      "<a href=\"/pages/#{escaped_slug}\" class=\"wiki-link\">#{escaped_name}</a>"
     end
 
     # Paragraphs
@@ -89,9 +91,11 @@ module PagesHelper
   # @param query [String] The search query
   # @return [String] Text with highlighted terms
   def highlight_search(text, query)
-    return text if query.blank?
+    return ERB::Util.html_escape(text) if query.blank?
 
-    text.gsub(/(#{Regexp.escape(query)})/i, '<mark>\1</mark>').html_safe
+    escaped_text = ERB::Util.html_escape(text)
+    escaped_query = ERB::Util.html_escape(query)
+    escaped_text.gsub(/(#{Regexp.escape(escaped_query)})/i, '<mark>\1</mark>').html_safe
   end
 
   # Generate diff HTML from diff output

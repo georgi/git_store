@@ -3,6 +3,10 @@
 # Controller for audited records with compliance features.
 # Provides CRUD operations, history, and compliance proof generation.
 #
+# NOTE: This controller expects to inherit from ApplicationController which should
+# have CSRF protection enabled (protect_from_forgery with: :exception).
+# See Rails security guide: https://guides.rubyonrails.org/security.html
+#
 class RecordsController < ApplicationController
   before_action :set_record, only: [:show, :edit, :update, :destroy, :history, :state_at, :proof, :diff]
   before_action :refresh_store
@@ -137,7 +141,7 @@ class RecordsController < ApplicationController
 
   def parse_data(text)
     return {} if text.blank?
-    YAML.safe_load(text, permitted_classes: [Symbol, Date, Time])
+    YAML.safe_load(text, permitted_classes: [Date, Time])
   rescue Psych::SyntaxError => e
     flash.now[:alert] = "Invalid YAML: #{e.message}"
     {}
